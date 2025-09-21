@@ -13,8 +13,8 @@ import InvalidParametersError, {
   PLAYER_NOT_IN_GAME_MESSAGE,
   GAME_NOT_IN_PROGRESS_MESSAGE,
   MOVE_NOT_YOUR_TURN_MESSAGE,
-  BOARD_POSITION_NOT_EMPTY_MESSAGE,
   BOARD_POSITION_NOT_VALID_MESSAGE,
+  INVALID_MOVE_MESSAGE,
 } from '../../lib/InvalidParametersError';
 
 /**
@@ -204,7 +204,7 @@ export default class QuantumTicTacToeGame extends Game<
     // Validate the board isn't already closed/won
     const targetGame = this._games[move.move.board];
     if (targetGame.state.status === 'OVER') {
-      throw new InvalidParametersError(BOARD_POSITION_NOT_VALID_MESSAGE);
+      throw new InvalidParametersError(INVALID_MOVE_MESSAGE);
     }
 
     // Reject if the player is trying to place on a square they already own on THIS board
@@ -214,7 +214,7 @@ export default class QuantumTicTacToeGame extends Game<
     );
     if (alreadyMine) {
       // You can’t re-claim your own square.
-      throw new InvalidParametersError(BOARD_POSITION_NOT_EMPTY_MESSAGE);
+      throw new InvalidParametersError(INVALID_MOVE_MESSAGE);
     }
 
     // NOTE: We intentionally DO NOT reject if the opponent already claimed the square.
