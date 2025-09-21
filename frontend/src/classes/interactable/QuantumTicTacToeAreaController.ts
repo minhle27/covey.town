@@ -126,7 +126,7 @@ export default class QuantumTicTacToeAreaController extends GameAreaController<
   protected _updateFrom(newModel: GameArea<QuantumTicTacToeGameState>): void {
     const oldIsOurTurn = this.isOurTurn;
     super._updateFrom(newModel);
-
+    
     if (newModel.game?.state.status === 'IN_PROGRESS') {
       // Reconstruct the visible state of the three boards
       const newBoards: { A: TicTacToeCell[][]; B: TicTacToeCell[][]; C: TicTacToeCell[][] } = {
@@ -151,9 +151,8 @@ export default class QuantumTicTacToeAreaController extends GameAreaController<
       if (newModel.game.state.moves) {
         for (const move of newModel.game.state.moves) {
           const isOurMove = move.gamePiece === this.gamePiece;
-          const isPubliclyVisible =
-            newModel.game.state.publiclyVisible[move.board][move.row][move.col];
-
+          const isPubliclyVisible = newModel.game.state.publiclyVisible[move.board][move.row][move.col];
+          
           // Show the move if:
           // 1. It's our move (always visible to us)
           // 2. It's publicly visible (collision occurred)
@@ -161,7 +160,7 @@ export default class QuantumTicTacToeAreaController extends GameAreaController<
             // If there's a collision, show the first piece that was placed there
             // We need to find the first move to that position
             const firstMoveToPosition = newModel.game.state.moves.find(
-              m => m.board === move.board && m.row === move.row && m.col === move.col,
+              m => m.board === move.board && m.row === move.row && m.col === move.col
             );
             if (firstMoveToPosition) {
               newBoards[move.board][move.row][move.col] = firstMoveToPosition.gamePiece;
