@@ -1,4 +1,8 @@
-import InvalidParametersError, { INVALID_COMMAND_MESSAGE } from '../../lib/InvalidParametersError';
+import InvalidParametersError, { 
+  INVALID_COMMAND_MESSAGE,
+  GAME_NOT_IN_PROGRESS_MESSAGE,
+  GAME_ID_MISSMATCH_MESSAGE,
+} from '../../lib/InvalidParametersError';
 import Player from '../../lib/Player';
 import {
   GameInstance,
@@ -6,6 +10,7 @@ import {
   InteractableCommandReturnType,
   InteractableType,
   QuantumTicTacToeGameState,
+  QuantumTicTacToeMove,
 } from '../../types/CoveyTownSocket';
 import GameArea from './GameArea';
 import QuantumTicTacToeGame from './QuantumTicTacToeGame';
@@ -57,8 +62,45 @@ export default class QuantumTicTacToeGameArea extends GameArea<QuantumTicTacToeG
     command: CommandType,
     player: Player,
   ): InteractableCommandReturnType<CommandType> {
-    // TODO: implement this based on the similar method in TicTacToeGameArea
-    // I think I'll need the _stateUpdated helper method, above.
+    if (command.type === 'GameMove') {
+      const game = this._game;
+      if (!game) {
+        throw new InvalidParametersError(GAME_NOT_IN_PROGRESS_MESSAGE);
+      }
+      if (this._game?.id !== command.gameID) {
+        throw new InvalidParametersError(GAME_ID_MISSMATCH_MESSAGE);
+      }
+      game.applyMove({
+        gameID: command.gameID,
+        playerID: player.id,
+        move: command.move as QuantumTicTacToeMove,
+      });
+      this._stateUpdated(game.toModel());
+      return undefined as InteractableCommandReturnType<CommandType>;
+    }
+    if (command.type === 'JoinGame') {
+      let game = this._game;
+      if (!game || game.state.status === 'OVER') {
+        // No game in progress, make a new one
+        game = new QuantumTicTacToeGame();
+        this._game = game;
+      }
+      game.join(player);
+      this._stateUpdated(game.toModel());
+      return { gameID: game.id } as InteractableCommandReturnType<CommandType>;
+    }
+    if (command.type === 'LeaveGame') {
+      const game = this._game;
+      if (!game) {
+        throw new InvalidParametersError(GAME_NOT_IN_PROGRESS_MESSAGE);
+      }
+      if (this._game?.id !== command.gameID) {
+        throw new InvalidParametersError(GAME_ID_MISSMATCH_MESSAGE);
+      }
+      game.leave(player);
+      this._stateUpdated(game.toModel());
+      return undefined as InteractableCommandReturnType<CommandType>;
+    }
     throw new InvalidParametersError(INVALID_COMMAND_MESSAGE);
   }
 }

@@ -124,8 +124,64 @@ export default class QuantumTicTacToeAreaController extends GameAreaController<
   }
 
   protected _updateFrom(newModel: GameArea<QuantumTicTacToeGameState>): void {
+    const oldIsOurTurn = this.isOurTurn;
     super._updateFrom(newModel);
-    // TODO: implement the rest of this
+    
+    if (newModel.game?.state.status === 'IN_PROGRESS') {
+      // Reconstruct the visible state of the three boards
+      const newBoards: { A: TicTacToeCell[][]; B: TicTacToeCell[][]; C: TicTacToeCell[][] } = {
+        A: [
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+        ],
+        B: [
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+        ],
+        C: [
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+          [undefined, undefined, undefined],
+        ],
+      };
+
+      // Process moves to build the visible board state
+      if (newModel.game.state.moves) {
+        for (const move of newModel.game.state.moves) {
+          const isOurMove = move.gamePiece === this.gamePiece;
+          const isPubliclyVisible = newModel.game.state.publiclyVisible[move.board][move.row][move.col];
+          
+          // Show the move if:
+          // 1. It's our move (always visible to us)
+          // 2. It's publicly visible (collision occurred)
+          if (isOurMove || isPubliclyVisible) {
+            // If there's a collision, show the first piece that was placed there
+            // We need to find the first move to that position
+            const firstMoveToPosition = newModel.game.state.moves.find(
+              m => m.board === move.board && m.row === move.row && m.col === move.col
+            );
+            if (firstMoveToPosition) {
+              newBoards[move.board][move.row][move.col] = firstMoveToPosition.gamePiece;
+            }
+          }
+        }
+      }
+
+      // Check if boards have changed
+      const boardsChanged = !_.isEqual(this._boards, newBoards);
+      if (boardsChanged) {
+        this._boards = newBoards;
+        this.emit('boardChanged', this._boards);
+      }
+
+      // Check if turn has changed
+      const newIsOurTurn = this.isOurTurn;
+      if (oldIsOurTurn !== newIsOurTurn) {
+        this.emit('turnChanged', newIsOurTurn);
+      }
+    }
   }
 
   public async makeMove(
