@@ -191,26 +191,39 @@ export default class QuantumTicTacToeGame extends Game<
       throw new InvalidParametersError(BOARD_POSITION_NOT_VALID_MESSAGE);
     }
 
-    // Validate it's the player's turn
-    const isXTurn = this.state.moves.length % 2 === 0;
-    const isXPlayer = move.playerID === this.state.x;
+    // Validate the board isn't already won
+    const targetGame = this._games[move.move.board];
+    if (targetGame.state.status === 'OVER') {
+      throw new InvalidParametersError('Cannot play on a completed board');
+    }
 
-    if ((isXTurn && !isXPlayer) || (!isXTurn && isXPlayer)) {
-      throw new InvalidParametersError(MOVE_NOT_YOUR_TURN_MESSAGE);
+    // Check if player is trying to play on their own piece on the SAME board
+    const currentPlayerPiece = move.playerID === this.state.x ? 'X' : 'O';
+    const board = targetGame.state.moves;
+
+    for (const existingMove of board) {
+      if (
+        existingMove.row === move.move.row &&
+        existingMove.col === move.move.col &&
+        existingMove.gamePiece === currentPlayerPiece
+      ) {
+        throw new InvalidParametersError('Cannot play on your own piece');
+      }
     }
 
     // Validate the position isn't already occupied on the specified board
-    const targetGame = this._games[move.move.board];
-    const board = targetGame.state.moves;
     for (const existingMove of board) {
       if (existingMove.row === move.move.row && existingMove.col === move.move.col) {
         throw new InvalidParametersError('Board position is not empty');
       }
     }
 
-    // Validate the board isn't already won
-    if (targetGame.state.status === 'OVER') {
-      throw new InvalidParametersError('Cannot play on a completed board');
+    // Validate it's the player's turn
+    const isXTurn = this.state.moves.length % 2 === 0;
+    const isXPlayer = move.playerID === this.state.x;
+
+    if ((isXTurn && !isXPlayer) || (!isXTurn && isXPlayer)) {
+      throw new InvalidParametersError(MOVE_NOT_YOUR_TURN_MESSAGE);
     }
   }
 
@@ -220,19 +233,7 @@ export default class QuantumTicTacToeGame extends Game<
     // Determine which game piece this player is using
     const gamePiece: 'X' | 'O' = move.playerID === this.state.x ? 'X' : 'O';
 
-    // Create the move for the subgame
-    const subgameMove: TicTacToeMove = {
-      gamePiece,
-      row: move.move.row,
-      col: move.move.col,
-    };
-
-    // Make the move on the target subgame by directly adding to its state
-    // We don't use applyMove because that would validate turn order in the subgame
-    const targetGame = this._games[move.move.board];
-    this._applyMoveToSubgame(targetGame, subgameMove);
-
-    // Check for collision with other boards
+    // Check for collision BEFORE making the move
     let collisionOccurred = false;
     let collidedBoard: 'A' | 'B' | 'C' | null = null;
 
@@ -256,7 +257,7 @@ export default class QuantumTicTacToeGame extends Game<
             collisionOccurred = true;
             collidedBoard = boardKey;
 
-            // Make the square publicly visible
+            // Make the square publicly visible on both boards
             this.state = {
               ...this.state,
               publiclyVisible: {
@@ -268,14 +269,6 @@ export default class QuantumTicTacToeGame extends Game<
                       : row,
                   ),
                 ],
-              },
-            };
-
-            // Also make it visible on the collided board
-            this.state = {
-              ...this.state,
-              publiclyVisible: {
-                ...this.state.publiclyVisible,
                 [collidedBoard]: [
                   ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
                     rowIdx === move.move.row
@@ -292,11 +285,29 @@ export default class QuantumTicTacToeGame extends Game<
       }
     }
 
-    // Add the move to the quantum game state (even if collision occurred)
-    this.state = {
-      ...this.state,
-      moves: [...this.state.moves, move.move],
-    };
+    // If collision occurred, the current player loses their turn
+    // Don't make the move, just make the squares visible and DON'T advance turn counter
+    if (collisionOccurred) {
+      // Don't add anything to moves array - the player loses their turn completely
+      // The squares are already made visible above
+    } else {
+      // No collision - make the normal move
+      const subgameMove: TicTacToeMove = {
+        gamePiece,
+        row: move.move.row,
+        col: move.move.col,
+      };
+
+      // Make the move on the target subgame by directly adding to its state
+      const targetGame = this._games[move.move.board];
+      this._applyMoveToSubgame(targetGame, subgameMove);
+
+      // Add the move to the quantum game state
+      this.state = {
+        ...this.state,
+        moves: [...this.state.moves, move.move],
+      };
+    }
 
     this._checkForWins();
     this._checkForGameEnding();
@@ -332,19 +343,6 @@ export default class QuantumTicTacToeGame extends Game<
 
         // Mark this board as scored
         this._scoredBoards.add(boardKey);
-
-        // Make the entire board publicly visible when someone wins
-        this.state = {
-          ...this.state,
-          publiclyVisible: {
-            ...this.state.publiclyVisible,
-            [boardKey]: [
-              [true, true, true],
-              [true, true, true],
-              [true, true, true],
-            ],
-          },
-        };
       }
     }
   }
