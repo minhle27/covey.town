@@ -59,13 +59,13 @@ export default class QuantumTicTacToeGame extends Game<
         ],
       },
     });
-    
+
     this._games = {
       A: new TicTacToeGame(),
       B: new TicTacToeGame(),
       C: new TicTacToeGame(),
     };
-    
+
     this._xScore = 0;
     this._oScore = 0;
     this._moveCount = 0;
@@ -76,7 +76,7 @@ export default class QuantumTicTacToeGame extends Game<
     if (this.state.x === player.id || this.state.o === player.id) {
       throw new InvalidParametersError(PLAYER_ALREADY_IN_GAME_MESSAGE);
     }
-    
+
     if (!this.state.x) {
       this.state = {
         ...this.state,
@@ -98,7 +98,7 @@ export default class QuantumTicTacToeGame extends Game<
     } else {
       throw new InvalidParametersError(GAME_FULL_MESSAGE);
     }
-    
+
     if (this.state.x && this.state.o) {
       this.state = {
         ...this.state,
@@ -111,12 +111,12 @@ export default class QuantumTicTacToeGame extends Game<
     if (this.state.x !== player.id && this.state.o !== player.id) {
       throw new InvalidParametersError(PLAYER_NOT_IN_GAME_MESSAGE);
     }
-    
+
     // Leave all three subgames
     this._games.A.leave(player);
     this._games.B.leave(player);
     this._games.C.leave(player);
-    
+
     // Handles case where the game has not started yet (only one player)
     if (this.state.o === undefined) {
       this.state = {
@@ -148,7 +148,7 @@ export default class QuantumTicTacToeGame extends Game<
       this._scoredBoards = new Set();
       return;
     }
-    
+
     // Game was in progress with two players - declare the other player winner
     if (this.state.x === player.id) {
       this.state = {
@@ -194,7 +194,7 @@ export default class QuantumTicTacToeGame extends Game<
     // Validate it's the player's turn
     const isXTurn = this.state.moves.length % 2 === 0;
     const isXPlayer = move.playerID === this.state.x;
-    
+
     if ((isXTurn && !isXPlayer) || (!isXTurn && isXPlayer)) {
       throw new InvalidParametersError(MOVE_NOT_YOUR_TURN_MESSAGE);
     }
@@ -219,7 +219,7 @@ export default class QuantumTicTacToeGame extends Game<
 
     // Determine which game piece this player is using
     const gamePiece: 'X' | 'O' = move.playerID === this.state.x ? 'X' : 'O';
-    
+
     // Create the move for the subgame
     const subgameMove: TicTacToeMove = {
       gamePiece,
@@ -235,59 +235,61 @@ export default class QuantumTicTacToeGame extends Game<
     // Check for collision with other boards
     let collisionOccurred = false;
     let collidedBoard: 'A' | 'B' | 'C' | null = null;
-    
+
     // Check if this position is occupied on any other board by the opponent
     const opponentID = move.playerID === this.state.x ? this.state.o : this.state.x;
     const opponentPiece = opponentID === this.state.x ? 'X' : 'O';
-    
+
     for (const boardKey of ['A', 'B', 'C'] as const) {
-      if (boardKey === move.move.board) continue; // Skip the current board
-      
-      const otherGame = this._games[boardKey];
-      const otherBoardMoves = otherGame.state.moves;
-      
-      // Check if opponent has a move at the same position
-      for (const otherMove of otherBoardMoves) {
-        if (otherMove.row === move.move.row && 
-            otherMove.col === move.move.col && 
-            otherMove.gamePiece === opponentPiece) {
-          // Collision detected!
-          collisionOccurred = true;
-          collidedBoard = boardKey;
-          
-          // Make the square publicly visible
-          this.state = {
-            ...this.state,
-            publiclyVisible: {
-              ...this.state.publiclyVisible,
-              [move.move.board]: [
-                ...this.state.publiclyVisible[move.move.board].map((row, rowIdx) =>
-                  rowIdx === move.move.row 
-                    ? row.map((cell, colIdx) => colIdx === move.move.col ? true : cell)
-                    : row
-                ),
-              ],
-            },
-          };
-          
-          // Also make it visible on the collided board
-          this.state = {
-            ...this.state,
-            publiclyVisible: {
-              ...this.state.publiclyVisible,
-              [collidedBoard]: [
-                ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
-                  rowIdx === move.move.row 
-                    ? row.map((cell, colIdx) => colIdx === move.move.col ? true : cell)
-                    : row
-                ),
-              ],
-            },
-          };
-          break;
+      if (boardKey !== move.move.board) {
+        const otherGame = this._games[boardKey];
+        const otherBoardMoves = otherGame.state.moves;
+
+        // Check if opponent has a move at the same position
+        for (const otherMove of otherBoardMoves) {
+          if (
+            otherMove.row === move.move.row &&
+            otherMove.col === move.move.col &&
+            otherMove.gamePiece === opponentPiece
+          ) {
+            // Collision detected!
+            collisionOccurred = true;
+            collidedBoard = boardKey;
+
+            // Make the square publicly visible
+            this.state = {
+              ...this.state,
+              publiclyVisible: {
+                ...this.state.publiclyVisible,
+                [move.move.board]: [
+                  ...this.state.publiclyVisible[move.move.board].map((row, rowIdx) =>
+                    rowIdx === move.move.row
+                      ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
+                      : row,
+                  ),
+                ],
+              },
+            };
+
+            // Also make it visible on the collided board
+            this.state = {
+              ...this.state,
+              publiclyVisible: {
+                ...this.state.publiclyVisible,
+                [collidedBoard]: [
+                  ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
+                    rowIdx === move.move.row
+                      ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
+                      : row,
+                  ),
+                ],
+              },
+            };
+            break;
+          }
         }
+        if (collisionOccurred) break;
       }
-      if (collisionOccurred) break;
     }
 
     // Add the move to the quantum game state (even if collision occurred)
@@ -307,12 +309,12 @@ export default class QuantumTicTacToeGame extends Game<
   private _checkForWins(): void {
     for (const boardKey of ['A', 'B', 'C'] as const) {
       const game = this._games[boardKey];
-      
+
       // Check if this board has a winner and we haven't already scored it
       if (game.state.status === 'OVER' && game.state.winner && !this._scoredBoards.has(boardKey)) {
         const isXWin = game.state.winner === this.state.x;
         const isOWin = game.state.winner === this.state.o;
-        
+
         // Award points based on who won
         if (isXWin) {
           this._xScore += 1;
@@ -327,10 +329,10 @@ export default class QuantumTicTacToeGame extends Game<
             oScore: this._oScore,
           };
         }
-        
+
         // Mark this board as scored
         this._scoredBoards.add(boardKey);
-        
+
         // Make the entire board publicly visible when someone wins
         this.state = {
           ...this.state,
@@ -354,37 +356,35 @@ export default class QuantumTicTacToeGame extends Game<
   private _checkForGameEnding(): void {
     // Check if any moves are still possible
     let movesPossible = false;
-    
+
     for (const boardKey of ['A', 'B', 'C'] as const) {
       const game = this._games[boardKey];
-      
+
       // If the board is won, no moves are possible on it
-      if (game.state.status === 'OVER') {
-        continue;
-      }
-      
-      // Check if there are any empty squares on this board
-      const boardMoves = game.state.moves;
-      const occupiedPositions = new Set();
-      
-      for (const move of boardMoves) {
-        occupiedPositions.add(`${move.row},${move.col}`);
-      }
-      
-      // Check all 9 positions on the board
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          if (!occupiedPositions.has(`${row},${col}`)) {
-            movesPossible = true;
-            break;
-          }
+      if (game.state.status !== 'OVER') {
+        // Check if there are any empty squares on this board
+        const boardMoves = game.state.moves;
+        const occupiedPositions = new Set();
+
+        for (const move of boardMoves) {
+          occupiedPositions.add(`${move.row},${move.col}`);
         }
+
+        // Check all 9 positions on the board
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            if (!occupiedPositions.has(`${row},${col}`)) {
+              movesPossible = true;
+              break;
+            }
+          }
+          if (movesPossible) break;
+        }
+
         if (movesPossible) break;
       }
-      
-      if (movesPossible) break;
     }
-    
+
     // If no moves are possible, end the game
     if (!movesPossible) {
       // Determine winner based on scores
@@ -396,7 +396,7 @@ export default class QuantumTicTacToeGame extends Game<
       } else {
         winner = undefined; // Tie
       }
-      
+
       this.state = {
         ...this.state,
         status: 'OVER',
@@ -416,11 +416,11 @@ export default class QuantumTicTacToeGame extends Game<
       ...currentState,
       moves: [...currentState.moves, move],
     };
-    
+
     // Use the protected setter by casting to any (this is a bit of a hack but necessary)
     // @ts-expect-error - accessing protected property for quantum game orchestration
     subgame.state = newState;
-    
+
     // Check for win conditions
     this._checkSubgameWin(subgame);
   }
@@ -436,15 +436,19 @@ export default class QuantumTicTacToeGame extends Game<
       ['', '', ''],
       ['', '', ''],
     ];
-    
+
     // Build the board from moves
     for (const move of board) {
       gameBoard[move.row][move.col] = move.gamePiece;
     }
-    
+
     // Check for 3 in a row or column
     for (let i = 0; i < 3; i++) {
-      if (gameBoard[i][0] !== '' && gameBoard[i][0] === gameBoard[i][1] && gameBoard[i][0] === gameBoard[i][2]) {
+      if (
+        gameBoard[i][0] !== '' &&
+        gameBoard[i][0] === gameBoard[i][1] &&
+        gameBoard[i][0] === gameBoard[i][2]
+      ) {
         const newState = {
           ...subgame.state,
           status: 'OVER' as const,
@@ -454,7 +458,11 @@ export default class QuantumTicTacToeGame extends Game<
         subgame.state = newState;
         return;
       }
-      if (gameBoard[0][i] !== '' && gameBoard[0][i] === gameBoard[1][i] && gameBoard[0][i] === gameBoard[2][i]) {
+      if (
+        gameBoard[0][i] !== '' &&
+        gameBoard[0][i] === gameBoard[1][i] &&
+        gameBoard[0][i] === gameBoard[2][i]
+      ) {
         const newState = {
           ...subgame.state,
           status: 'OVER' as const,
@@ -465,9 +473,13 @@ export default class QuantumTicTacToeGame extends Game<
         return;
       }
     }
-    
+
     // Check for 3 in a diagonal
-    if (gameBoard[0][0] !== '' && gameBoard[0][0] === gameBoard[1][1] && gameBoard[0][0] === gameBoard[2][2]) {
+    if (
+      gameBoard[0][0] !== '' &&
+      gameBoard[0][0] === gameBoard[1][1] &&
+      gameBoard[0][0] === gameBoard[2][2]
+    ) {
       const newState = {
         ...subgame.state,
         status: 'OVER' as const,
@@ -477,9 +489,13 @@ export default class QuantumTicTacToeGame extends Game<
       subgame.state = newState;
       return;
     }
-    
+
     // Check for 3 in the other diagonal
-    if (gameBoard[0][2] !== '' && gameBoard[0][2] === gameBoard[1][1] && gameBoard[0][2] === gameBoard[2][0]) {
+    if (
+      gameBoard[0][2] !== '' &&
+      gameBoard[0][2] === gameBoard[1][1] &&
+      gameBoard[0][2] === gameBoard[2][0]
+    ) {
       const newState = {
         ...subgame.state,
         status: 'OVER' as const,
@@ -489,7 +505,7 @@ export default class QuantumTicTacToeGame extends Game<
       subgame.state = newState;
       return;
     }
-    
+
     // Check for no more moves (tie)
     if (subgame.state.moves.length === 9) {
       const newState = {

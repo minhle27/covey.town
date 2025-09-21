@@ -1,4 +1,4 @@
-import InvalidParametersError, { 
+import InvalidParametersError, {
   INVALID_COMMAND_MESSAGE,
   GAME_NOT_IN_PROGRESS_MESSAGE,
   GAME_ID_MISSMATCH_MESSAGE,

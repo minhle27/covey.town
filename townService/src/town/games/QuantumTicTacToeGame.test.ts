@@ -1,6 +1,6 @@
 import { createPlayerForTesting } from '../../TestUtils';
 import Player from '../../lib/Player';
-import { GameMove } from '../../types/CoveyTownSocket';
+import { GameMove, QuantumTicTacToeMove } from '../../types/CoveyTownSocket';
 import QuantumTicTacToeGame from './QuantumTicTacToeGame';
 
 describe('QuantumTicTacToeGame', () => {
@@ -45,7 +45,7 @@ describe('QuantumTicTacToeGame', () => {
     it('should join players to all three subgames', () => {
       game.join(player1);
       game.join(player2);
-      
+
       // @ts-expect-error - accessing private property for testing
       expect(game._games.A.state.x).toBe(player1.id);
       // @ts-expect-error - accessing private property for testing
@@ -107,7 +107,7 @@ describe('QuantumTicTacToeGame', () => {
 
       it('should remove players from all three subgames when leaving', () => {
         game.leave(player1);
-        
+
         // @ts-expect-error - accessing private property for testing
         expect(game._games.A.state.status).toBe('OVER');
         // @ts-expect-error - accessing private property for testing
@@ -131,11 +131,10 @@ describe('QuantumTicTacToeGame', () => {
     });
 
     const makeMove = (player: Player, board: 'A' | 'B' | 'C', row: 0 | 1 | 2, col: 0 | 1 | 2) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const move: GameMove<any> = {
+      const move: GameMove<QuantumTicTacToeMove> = {
         playerID: player.id,
         gameID: game.id,
-        move: { board, row, col },
+        move: { gamePiece: player.id === player1.id ? 'X' : 'O', board, row, col },
       };
       game.applyMove(move);
     };
@@ -156,11 +155,16 @@ describe('QuantumTicTacToeGame', () => {
 
     it('should validate game is in progress before allowing moves', () => {
       const game2 = new QuantumTicTacToeGame();
-      const makeMove2 = (player: Player, board: 'A' | 'B' | 'C', row: 0 | 1 | 2, col: 0 | 1 | 2) => {
-        const move: GameMove<any> = {
+      const makeMove2 = (
+        player: Player,
+        board: 'A' | 'B' | 'C',
+        row: 0 | 1 | 2,
+        col: 0 | 1 | 2,
+      ) => {
+        const move: GameMove<QuantumTicTacToeMove> = {
           playerID: player.id,
           gameID: game2.id,
-          move: { board, row, col },
+          move: { gamePiece: 'X', board, row, col },
         };
         game2.applyMove(move);
       };
@@ -205,7 +209,7 @@ describe('QuantumTicTacToeGame', () => {
       makeMove(player1, 'A', 0, 1); // X
       makeMove(player2, 'B', 0, 1); // O
       makeMove(player1, 'A', 0, 2); // X wins board A
-      
+
       expect(() => makeMove(player2, 'A', 1, 0)).toThrow('Cannot play on a completed board');
     });
 
@@ -213,7 +217,7 @@ describe('QuantumTicTacToeGame', () => {
       it('should make squares publicly visible when both players occupy the same position', () => {
         makeMove(player1, 'A', 0, 0); // X on board A
         makeMove(player2, 'B', 0, 0); // O on board B - collision!
-        
+
         expect(game.state.publiclyVisible.A[0][0]).toBe(true);
         expect(game.state.publiclyVisible.B[0][0]).toBe(true);
       });
@@ -221,7 +225,7 @@ describe('QuantumTicTacToeGame', () => {
       it('should handle collisions across all boards', () => {
         makeMove(player1, 'A', 1, 1); // X on board A
         makeMove(player2, 'C', 1, 1); // O on board C - collision!
-        
+
         expect(game.state.publiclyVisible.A[1][1]).toBe(true);
         expect(game.state.publiclyVisible.C[1][1]).toBe(true);
       });
@@ -247,7 +251,7 @@ describe('QuantumTicTacToeGame', () => {
         makeMove(player1, 'A', 0, 1); // X
         makeMove(player2, 'B', 0, 1); // O
         makeMove(player1, 'A', 0, 2); // X wins board A
-        
+
         // O wins board B
         makeMove(player2, 'B', 1, 0); // O
         makeMove(player1, 'C', 0, 0); // X
@@ -273,7 +277,6 @@ describe('QuantumTicTacToeGame', () => {
           [true, true, true],
         ]);
       });
-
     });
   });
 });
