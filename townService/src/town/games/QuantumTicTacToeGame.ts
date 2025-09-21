@@ -214,7 +214,22 @@ export default class QuantumTicTacToeGame extends Game<
       throw new InvalidParametersError('Cannot play on a completed board');
     }
 
-    // Own-piece moves on other boards are allowed; only the target board must be empty
+    // Validate that the player isn't trying to place on their own piece on other boards
+    const gamePiece: 'X' | 'O' = move.playerID === this.state.x ? 'X' : 'O';
+    for (const boardKey of ['A', 'B', 'C'] as const) {
+      if (boardKey !== move.move.board) {
+        const otherBoardMoves = this._games[boardKey].state.moves;
+        for (const otherMove of otherBoardMoves) {
+          if (
+            otherMove.row === move.move.row &&
+            otherMove.col === move.move.col &&
+            otherMove.gamePiece === gamePiece
+          ) {
+            throw new InvalidParametersError(BOARD_POSITION_NOT_VALID_MESSAGE);
+          }
+        }
+      }
+    }
   }
 
   public applyMove(move: GameMove<QuantumTicTacToeMove>): void {
@@ -246,7 +261,7 @@ export default class QuantumTicTacToeGame extends Game<
     }
 
     if (collisionOccurred && collidedBoard) {
-      // Reveal this square on both involved boards
+      // Reveal this square on both involved boards atomically
       this.state = {
         ...this.state,
         publiclyVisible: {
@@ -258,12 +273,6 @@ export default class QuantumTicTacToeGame extends Game<
                 : row,
             ),
           ],
-        },
-      };
-      this.state = {
-        ...this.state,
-        publiclyVisible: {
-          ...this.state.publiclyVisible,
           [collidedBoard]: [
             ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
               rowIdx === move.move.row
@@ -272,11 +281,6 @@ export default class QuantumTicTacToeGame extends Game<
             ),
           ],
         },
-      };
-
-      // Record the attempted move to toggle turns, but do not modify subgame state
-      this.state = {
-        ...this.state,
         moves: [...this.state.moves, move.move],
       };
 

@@ -213,6 +213,15 @@ describe('QuantumTicTacToeGame', () => {
       expect(() => makeMove(player2, 'A', 1, 0)).toThrow('Cannot play on a completed board');
     });
 
+    it('should throw an error if a player tries to play on their own piece', () => {
+      // Player1 places X on board A at (0,0)
+      makeMove(player1, 'A', 0, 0); // X
+      makeMove(player2, 'B', 1, 1); // O (avoid collision)
+      // Player1 tries to place X on board B at (0,0) - should be allowed normally
+      // But if there's already an X at (0,0) on board A, it should throw an error
+      expect(() => makeMove(player1, 'B', 0, 0)).toThrow('Board position is not valid');
+    });
+
     describe('collision detection', () => {
       it('should make squares publicly visible when both players occupy the same position', () => {
         makeMove(player1, 'A', 0, 0); // X on board A
@@ -229,6 +238,17 @@ describe('QuantumTicTacToeGame', () => {
         expect(game.state.publiclyVisible.A[1][1]).toBe(true);
         expect(game.state.publiclyVisible.C[1][1]).toBe(true);
       });
+
+      it('should handle a collision by losing the second players turn', () => {
+        makeMove(player1, 'A', 0, 0); // X on board A
+        makeMove(player2, 'B', 0, 0); // O on board B - collision!
+
+        // After collision, it should be X's turn again (O lost their turn)
+        expect(game.state.moves.length).toBe(2); // Both moves recorded
+        // Next move should be X's turn
+        makeMove(player1, 'C', 1, 1); // X should be able to move
+        expect(game.state.moves.length).toBe(3);
+      });
     });
 
     describe('scoring and game end', () => {
@@ -244,6 +264,19 @@ describe('QuantumTicTacToeGame', () => {
         expect(game.state.oScore).toBe(0);
       });
 
+      it('should award a point when a player gets three-in-a-row (O version)', () => {
+        // O gets a win on board A (avoid collisions and own-piece)
+        makeMove(player1, 'B', 1, 1); // X on board B
+        makeMove(player2, 'A', 0, 0); // O on board A
+        makeMove(player1, 'B', 2, 2); // X on board B
+        makeMove(player2, 'A', 0, 1); // O on board A
+        makeMove(player1, 'C', 2, 1); // X on board C (avoid own-piece at 1,1)
+        makeMove(player2, 'A', 0, 2); // O on board A -> scores 1 point
+
+        expect(game.state.xScore).toBe(0);
+        expect(game.state.oScore).toBe(1);
+      });
+
       it('should award points for wins on different boards', () => {
         // X wins board A
         makeMove(player1, 'A', 0, 0); // X
@@ -254,9 +287,9 @@ describe('QuantumTicTacToeGame', () => {
 
         // O wins board B
         makeMove(player2, 'B', 1, 0); // O
-        makeMove(player1, 'C', 0, 0); // X
+        makeMove(player1, 'C', 2, 2); // X (avoid own-piece at 0,0)
         makeMove(player2, 'B', 1, 1); // O
-        makeMove(player1, 'C', 0, 1); // X
+        makeMove(player1, 'C', 2, 1); // X (avoid own-piece at 0,1)
         makeMove(player2, 'B', 1, 2); // O wins board B
 
         expect(game.state.xScore).toBe(1);
