@@ -263,18 +263,18 @@ describe('QuantumTicTacToeGame', () => {
         expect(game.state.oScore).toBe(1);
       });
 
-      it('should make entire board visible when someone wins', () => {
+      it('should not reveal entire board when someone wins; only collided squares visible', () => {
         makeMove(player1, 'A', 0, 0); // X
-        makeMove(player2, 'B', 0, 0); // O
+        makeMove(player2, 'B', 0, 0); // O (collision reveals A[0][0] and B[0][0])
         makeMove(player1, 'A', 0, 1); // X
-        makeMove(player2, 'B', 0, 1); // O
+        makeMove(player2, 'B', 0, 1); // O (collision reveals A[0][1] and B[0][1])
         makeMove(player1, 'A', 0, 2); // X wins board A
 
-        // All squares on board A should be visible
+        // Only the collided squares on board A should be visible
         expect(game.state.publiclyVisible.A).toEqual([
-          [true, true, true],
-          [true, true, true],
-          [true, true, true],
+          [true, true, false],
+          [false, false, false],
+          [false, false, false],
         ]);
       });
     });

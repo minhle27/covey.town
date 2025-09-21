@@ -13,6 +13,7 @@ import InvalidParametersError, {
   PLAYER_NOT_IN_GAME_MESSAGE,
   GAME_NOT_IN_PROGRESS_MESSAGE,
   MOVE_NOT_YOUR_TURN_MESSAGE,
+  BOARD_POSITION_NOT_EMPTY_MESSAGE,
   BOARD_POSITION_NOT_VALID_MESSAGE,
 } from '../../lib/InvalidParametersError';
 
@@ -204,7 +205,7 @@ export default class QuantumTicTacToeGame extends Game<
     const board = targetGame.state.moves;
     for (const existingMove of board) {
       if (existingMove.row === move.move.row && existingMove.col === move.move.col) {
-        throw new InvalidParametersError('Board position is not empty');
+        throw new InvalidParametersError(BOARD_POSITION_NOT_EMPTY_MESSAGE);
       }
     }
 
@@ -212,6 +213,8 @@ export default class QuantumTicTacToeGame extends Game<
     if (targetGame.state.status === 'OVER') {
       throw new InvalidParametersError('Cannot play on a completed board');
     }
+
+    // Own-piece moves on other boards are allowed; only the target board must be empty
   }
 
   public applyMove(move: GameMove<QuantumTicTacToeMove>): void {
@@ -220,71 +223,21 @@ export default class QuantumTicTacToeGame extends Game<
     // Determine which game piece this player is using
     const gamePiece: 'X' | 'O' = move.playerID === this.state.x ? 'X' : 'O';
 
-    // Create the move for the subgame
-    const subgameMove: TicTacToeMove = {
-      gamePiece,
-      row: move.move.row,
-      col: move.move.col,
-    };
-
-    // Make the move on the target subgame by directly adding to its state
-    // We don't use applyMove because that would validate turn order in the subgame
-    const targetGame = this._games[move.move.board];
-    this._applyMoveToSubgame(targetGame, subgameMove);
-
-    // Check for collision with other boards
+    // Check for collision with other boards BEFORE applying to subgame
     let collisionOccurred = false;
     let collidedBoard: 'A' | 'B' | 'C' | null = null;
-
-    // Check if this position is occupied on any other board by the opponent
-    const opponentID = move.playerID === this.state.x ? this.state.o : this.state.x;
-    const opponentPiece = opponentID === this.state.x ? 'X' : 'O';
-
+    const opponentPiece: 'X' | 'O' = gamePiece === 'X' ? 'O' : 'X';
     for (const boardKey of ['A', 'B', 'C'] as const) {
       if (boardKey !== move.move.board) {
-        const otherGame = this._games[boardKey];
-        const otherBoardMoves = otherGame.state.moves;
-
-        // Check if opponent has a move at the same position
+        const otherBoardMoves = this._games[boardKey].state.moves;
         for (const otherMove of otherBoardMoves) {
           if (
             otherMove.row === move.move.row &&
             otherMove.col === move.move.col &&
             otherMove.gamePiece === opponentPiece
           ) {
-            // Collision detected!
             collisionOccurred = true;
             collidedBoard = boardKey;
-
-            // Make the square publicly visible
-            this.state = {
-              ...this.state,
-              publiclyVisible: {
-                ...this.state.publiclyVisible,
-                [move.move.board]: [
-                  ...this.state.publiclyVisible[move.move.board].map((row, rowIdx) =>
-                    rowIdx === move.move.row
-                      ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
-                      : row,
-                  ),
-                ],
-              },
-            };
-
-            // Also make it visible on the collided board
-            this.state = {
-              ...this.state,
-              publiclyVisible: {
-                ...this.state.publiclyVisible,
-                [collidedBoard]: [
-                  ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
-                    rowIdx === move.move.row
-                      ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
-                      : row,
-                  ),
-                ],
-              },
-            };
             break;
           }
         }
@@ -292,12 +245,59 @@ export default class QuantumTicTacToeGame extends Game<
       }
     }
 
-    // Add the move to the quantum game state (even if collision occurred)
+    if (collisionOccurred && collidedBoard) {
+      // Reveal this square on both involved boards
+      this.state = {
+        ...this.state,
+        publiclyVisible: {
+          ...this.state.publiclyVisible,
+          [move.move.board]: [
+            ...this.state.publiclyVisible[move.move.board].map((row, rowIdx) =>
+              rowIdx === move.move.row
+                ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
+                : row,
+            ),
+          ],
+        },
+      };
+      this.state = {
+        ...this.state,
+        publiclyVisible: {
+          ...this.state.publiclyVisible,
+          [collidedBoard]: [
+            ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
+              rowIdx === move.move.row
+                ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
+                : row,
+            ),
+          ],
+        },
+      };
+
+      // Record the attempted move to toggle turns, but do not modify subgame state
+      this.state = {
+        ...this.state,
+        moves: [...this.state.moves, move.move],
+      };
+
+      this._checkForGameEnding();
+      return;
+    }
+
+    // No collision: apply move to the target subgame
+    const subgameMove: TicTacToeMove = {
+      gamePiece,
+      row: move.move.row,
+      col: move.move.col,
+    };
+    const targetGame = this._games[move.move.board];
+    this._applyMoveToSubgame(targetGame, subgameMove);
+
+    // Record the move in the quantum state and check for wins/end
     this.state = {
       ...this.state,
       moves: [...this.state.moves, move.move],
     };
-
     this._checkForWins();
     this._checkForGameEnding();
   }
@@ -333,18 +333,7 @@ export default class QuantumTicTacToeGame extends Game<
         // Mark this board as scored
         this._scoredBoards.add(boardKey);
 
-        // Make the entire board publicly visible when someone wins
-        this.state = {
-          ...this.state,
-          publiclyVisible: {
-            ...this.state.publiclyVisible,
-            [boardKey]: [
-              [true, true, true],
-              [true, true, true],
-              [true, true, true],
-            ],
-          },
-        };
+        // Do not reveal the entire board when someone wins; winning boards remain private
       }
     }
   }
