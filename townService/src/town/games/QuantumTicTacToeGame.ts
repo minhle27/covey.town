@@ -167,9 +167,10 @@ export default class QuantumTicTacToeGame extends Game<
   }
 
   /**
-   * Checks that the given move is "valid": that the it's the right
+   * Checks that the given move is "valid": that it's the right
    * player's turn, that the game is actually in-progress, etc.
-   * @see TicTacToeGame#_validateMove
+   * IMPORTANT: We do NOT reject "occupied by opponent" here, because that is a legal
+   * collision attempt (lose turn + reveal). We only reject "already mine".
    */
   private _validateMove(move: GameMove<QuantumTicTacToeMove>): void {
     // Validate game is in progress
@@ -200,87 +201,49 @@ export default class QuantumTicTacToeGame extends Game<
       throw new InvalidParametersError(MOVE_NOT_YOUR_TURN_MESSAGE);
     }
 
-    // Validate the position isn't already occupied on the specified board
+    // Validate the board isn't already closed/won
     const targetGame = this._games[move.move.board];
-    const board = targetGame.state.moves;
-    for (const existingMove of board) {
-      if (existingMove.row === move.move.row && existingMove.col === move.move.col) {
-        throw new InvalidParametersError(BOARD_POSITION_NOT_EMPTY_MESSAGE);
-      }
-    }
-
-    // Validate the board isn't already won
     if (targetGame.state.status === 'OVER') {
       throw new InvalidParametersError(BOARD_POSITION_NOT_VALID_MESSAGE);
     }
 
-    // Validate that the player isn't trying to place on their own piece on other boards
+    // Reject if the player is trying to place on a square they already own on THIS board
     const gamePiece: 'X' | 'O' = move.playerID === this.state.x ? 'X' : 'O';
-    for (const boardKey of ['A', 'B', 'C'] as const) {
-      if (boardKey !== move.move.board) {
-        const otherBoardMoves = this._games[boardKey].state.moves;
-        for (const otherMove of otherBoardMoves) {
-          if (
-            otherMove.row === move.move.row &&
-            otherMove.col === move.move.col &&
-            otherMove.gamePiece === gamePiece
-          ) {
-            throw new InvalidParametersError(BOARD_POSITION_NOT_EMPTY_MESSAGE);
-          }
-        }
-      }
+    const alreadyMine = targetGame.state.moves.some(
+      m => m.row === move.move.row && m.col === move.move.col && m.gamePiece === gamePiece,
+    );
+    if (alreadyMine) {
+      // You can’t re-claim your own square.
+      throw new InvalidParametersError(BOARD_POSITION_NOT_EMPTY_MESSAGE);
     }
+
+    // NOTE: We intentionally DO NOT reject if the opponent already claimed the square.
+    // That case is handled in applyMove as a collision: lose the turn + reveal on the public board.
+    // Also: We do NOT restrict coordinates across different boards (boards are independent).
   }
 
   public applyMove(move: GameMove<QuantumTicTacToeMove>): void {
     this._validateMove(move);
 
+    const targetBoardKey = move.move.board;
+    const targetGame = this._games[targetBoardKey];
+
     // Determine which game piece this player is using
     const gamePiece: 'X' | 'O' = move.playerID === this.state.x ? 'X' : 'O';
-
-    // Check for collision with other boards BEFORE applying to subgame
-    let collisionOccurred = false;
-    let collidedBoard: 'A' | 'B' | 'C' | null = null;
     const opponentPiece: 'X' | 'O' = gamePiece === 'X' ? 'O' : 'X';
-    for (const boardKey of ['A', 'B', 'C'] as const) {
-      if (boardKey !== move.move.board) {
-        const otherBoardMoves = this._games[boardKey].state.moves;
-        for (const otherMove of otherBoardMoves) {
-          if (
-            otherMove.row === move.move.row &&
-            otherMove.col === move.move.col &&
-            otherMove.gamePiece === opponentPiece
-          ) {
-            collisionOccurred = true;
-            collidedBoard = boardKey;
-            break;
-          }
-        }
-        if (collisionOccurred) break;
-      }
-    }
 
-    if (collisionOccurred && collidedBoard) {
-      // Reveal this square on both involved boards atomically
+    // --- Collision check on the SAME BOARD only ---
+    const opponentAlreadyClaimed = targetGame.state.moves.some(
+      m => m.row === move.move.row && m.col === move.move.col && m.gamePiece === opponentPiece,
+    );
+
+    if (opponentAlreadyClaimed) {
+      // COLLISION: Player loses the turn; reveal opponent's symbol publicly on the SAME board cell.
+      this._revealPublic(targetBoardKey, move.move.row, move.move.col);
+
+      // Record the attempted move (to alternate turns) but DO NOT modify the subgame.
       this.state = {
         ...this.state,
-        publiclyVisible: {
-          ...this.state.publiclyVisible,
-          [move.move.board]: [
-            ...this.state.publiclyVisible[move.move.board].map((row, rowIdx) =>
-              rowIdx === move.move.row
-                ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
-                : row,
-            ),
-          ],
-          [collidedBoard]: [
-            ...this.state.publiclyVisible[collidedBoard].map((row, rowIdx) =>
-              rowIdx === move.move.row
-                ? row.map((cell, colIdx) => (colIdx === move.move.col ? true : cell))
-                : row,
-            ),
-          ],
-        },
         moves: [...this.state.moves, move.move],
       };
 
@@ -288,16 +251,15 @@ export default class QuantumTicTacToeGame extends Game<
       return;
     }
 
-    // No collision: apply move to the target subgame
+    // No collision: apply move to the target subgame (private claim stands)
     const subgameMove: TicTacToeMove = {
       gamePiece,
       row: move.move.row,
       col: move.move.col,
     };
-    const targetGame = this._games[move.move.board];
     this._applyMoveToSubgame(targetGame, subgameMove);
 
-    // Record the move in the quantum state and check for wins/end
+    // Record the move in the quantum meta-state and check for wins/end
     this.state = {
       ...this.state,
       moves: [...this.state.moves, move.move],
@@ -307,8 +269,27 @@ export default class QuantumTicTacToeGame extends Game<
   }
 
   /**
+   * Reveal a cell on the public board for the given board letter.
+   * The UI can derive which symbol to draw by inspecting the subgame's owner of that cell.
+   * We keep a boolean "visible" grid for compatibility.
+   */
+  private _revealPublic(boardKey: 'A' | 'B' | 'C', row: number, col: number): void {
+    const grid = this.state.publiclyVisible[boardKey].map(r => r.slice());
+    grid[row][col] = true;
+
+    this.state = {
+      ...this.state,
+      publiclyVisible: {
+        ...this.state.publiclyVisible,
+        [boardKey]: grid,
+      },
+    };
+  }
+
+  /**
    * Checks all three sub-games for any new three-in-a-row conditions.
    * Awards points and marks boards as "won" so they can't be played on.
+   * (The subgames set status/winner; we just score once per board here.)
    */
   private _checkForWins(): void {
     for (const boardKey of ['A', 'B', 'C'] as const) {
@@ -334,39 +315,37 @@ export default class QuantumTicTacToeGame extends Game<
           };
         }
 
-        // Mark this board as scored
+        // Mark this board as scored/closed
         this._scoredBoards.add(boardKey);
 
-        // Do not reveal the entire board when someone wins; winning boards remain private
+        // Do not reveal the board state; it remains private when closed.
       }
     }
   }
 
   /**
    * A Quantum Tic-Tac-Toe game ends when no more moves are possible.
-   * This happens when all squares on all boards are either occupied or part of a won board.
+   * This happens when all squares on all boards are either occupied or the board is closed.
+   * "Occupied" means privately claimed by either player on that board.
    */
   private _checkForGameEnding(): void {
-    // Check if any moves are still possible
     let movesPossible = false;
 
     for (const boardKey of ['A', 'B', 'C'] as const) {
       const game = this._games[boardKey];
 
-      // If the board is won, no moves are possible on it
+      // Closed boards are not playable
       if (game.state.status !== 'OVER') {
-        // Check if there are any empty squares on this board
-        const boardMoves = game.state.moves;
-        const occupiedPositions = new Set();
-
-        for (const move of boardMoves) {
-          occupiedPositions.add(`${move.row},${move.col}`);
+        // Collect occupied cells on this board from private claims
+        const occupied = new Set<string>();
+        for (const move of game.state.moves) {
+          occupied.add(`${move.row},${move.col}`);
         }
 
-        // Check all 9 positions on the board
+        // Any unclaimed cell means at least one legal move exists
         for (let row = 0; row < 3; row++) {
           for (let col = 0; col < 3; col++) {
-            if (!occupiedPositions.has(`${row},${col}`)) {
+            if (!occupied.has(`${row},${col}`)) {
               movesPossible = true;
               break;
             }
@@ -378,7 +357,6 @@ export default class QuantumTicTacToeGame extends Game<
       }
     }
 
-    // If no moves are possible, end the game
     if (!movesPossible) {
       // Determine winner based on scores
       let winner: string | undefined;
@@ -424,7 +402,7 @@ export default class QuantumTicTacToeGame extends Game<
    */
   private _checkSubgameWin(subgame: TicTacToeGame): void {
     const board = subgame.state.moves;
-    const gameBoard = [
+    const gameBoard: ('X' | 'O' | '')[][] = [
       ['', '', ''],
       ['', '', ''],
       ['', '', ''],
@@ -499,7 +477,7 @@ export default class QuantumTicTacToeGame extends Game<
       return;
     }
 
-    // Check for no more moves (tie)
+    // Check for no more moves (tie/closed without a winner)
     if (subgame.state.moves.length === 9) {
       const newState = {
         ...subgame.state,

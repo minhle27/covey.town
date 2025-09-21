@@ -223,7 +223,6 @@ describe('QuantumTicTacToeGame', () => {
       expect(() => makeMove(player1, 'B', 0, 0)).toThrow('Board position is not valid');
     });
 
-
     describe('collision detection', () => {
       it('should make squares publicly visible when both players occupy the same position', () => {
         makeMove(player1, 'A', 0, 0); // X on board A
@@ -244,7 +243,7 @@ describe('QuantumTicTacToeGame', () => {
       it('should handle a collision by losing the second players turn', () => {
         makeMove(player1, 'A', 0, 0); // X on board A
         makeMove(player2, 'B', 0, 0); // O on board B - collision!
-        
+
         // After collision, it should be X's turn again (O lost their turn)
         expect(game.state.moves.length).toBe(2); // Both moves recorded
         // Next move should be X's turn
