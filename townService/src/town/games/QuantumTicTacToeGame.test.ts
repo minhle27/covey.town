@@ -1,4 +1,5 @@
 import { createPlayerForTesting } from '../../TestUtils';
+import { BOARD_POSITION_NOT_VALID_MESSAGE } from '../../lib/InvalidParametersError';
 import Player from '../../lib/Player';
 import { GameMove, QuantumTicTacToeMove } from '../../types/CoveyTownSocket';
 import QuantumTicTacToeGame from './QuantumTicTacToeGame';
@@ -210,7 +211,7 @@ describe('QuantumTicTacToeGame', () => {
       makeMove(player2, 'B', 0, 1); // O
       makeMove(player1, 'A', 0, 2); // X wins board A
 
-      expect(() => makeMove(player2, 'A', 1, 0)).toThrow('Cannot play on a completed board');
+      expect(() => makeMove(player2, 'A', 1, 0)).toThrow(BOARD_POSITION_NOT_VALID_MESSAGE);
     });
 
     it('should throw an error if a player tries to play on their own piece', () => {
@@ -221,6 +222,7 @@ describe('QuantumTicTacToeGame', () => {
       // But if there's already an X at (0,0) on board A, it should throw an error
       expect(() => makeMove(player1, 'B', 0, 0)).toThrow('Board position is not valid');
     });
+
 
     describe('collision detection', () => {
       it('should make squares publicly visible when both players occupy the same position', () => {
@@ -242,7 +244,7 @@ describe('QuantumTicTacToeGame', () => {
       it('should handle a collision by losing the second players turn', () => {
         makeMove(player1, 'A', 0, 0); // X on board A
         makeMove(player2, 'B', 0, 0); // O on board B - collision!
-
+        
         // After collision, it should be X's turn again (O lost their turn)
         expect(game.state.moves.length).toBe(2); // Both moves recorded
         // Next move should be X's turn

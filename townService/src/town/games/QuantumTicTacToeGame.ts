@@ -211,7 +211,7 @@ export default class QuantumTicTacToeGame extends Game<
 
     // Validate the board isn't already won
     if (targetGame.state.status === 'OVER') {
-      throw new InvalidParametersError('Cannot play on a completed board');
+      throw new InvalidParametersError(BOARD_POSITION_NOT_VALID_MESSAGE);
     }
 
     // Validate that the player isn't trying to place on their own piece on other boards
@@ -225,7 +225,7 @@ export default class QuantumTicTacToeGame extends Game<
             otherMove.col === move.move.col &&
             otherMove.gamePiece === gamePiece
           ) {
-            throw new InvalidParametersError(BOARD_POSITION_NOT_VALID_MESSAGE);
+            throw new InvalidParametersError(BOARD_POSITION_NOT_EMPTY_MESSAGE);
           }
         }
       }
