@@ -1,4 +1,11 @@
 import { createPlayerForTesting } from '../../TestUtils';
+import InvalidParametersError, {
+  BOARD_POSITION_NOT_VALID_MESSAGE,
+  GAME_NOT_IN_PROGRESS_MESSAGE,
+  INVALID_MOVE_MESSAGE,
+  MOVE_NOT_YOUR_TURN_MESSAGE,
+  PLAYER_NOT_IN_GAME_MESSAGE,
+} from '../../lib/InvalidParametersError';
 import Player from '../../lib/Player';
 import { GameMove } from '../../types/CoveyTownSocket';
 import QuantumTicTacToeGame from './QuantumTicTacToeGame';
@@ -582,6 +589,328 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         makeMove(playerO, 'B', 1, 0);
         expect(game.state.publiclyVisible.C[1][2]).toBe(true);
       });
+    });
+  });
+});
+
+describe('QuantumTicTacToeGame (private method tests)', () => {
+  let game: QuantumTicTacToeGame;
+  let playerX: Player;
+  let playerO: Player;
+
+  beforeEach(() => {
+    game = new QuantumTicTacToeGame();
+    playerX = createPlayerForTesting();
+    playerO = createPlayerForTesting();
+  });
+
+  const makeMove = (player: Player, board: 'A' | 'B' | 'C', row: 0 | 1 | 2, col: 0 | 1 | 2) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const move: GameMove<any> = { playerID: player.id, gameID: game.id, move: { board, row, col } };
+    game.applyMove(move);
+  };
+
+  /* ===================== _validateMove ===================== */
+
+  describe('_validateMove', () => {
+    it('throws when game not in progress', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mv: GameMove<any> = {
+        playerID: 'nobody',
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
+      try {
+        (game as any)._validateMove(mv);
+        fail('expected error');
+      } catch (err) {
+        expect(err).toBeInstanceOf(InvalidParametersError);
+        expect((err as Error).message).toBe(GAME_NOT_IN_PROGRESS_MESSAGE);
+      }
+    });
+
+    it('throws for unknown player and out-of-turn, and invalid board/coords', () => {
+      game.join(playerX);
+      game.join(playerO);
+
+      // unknown player
+      const stranger = createPlayerForTesting();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unknownMove: GameMove<any> = {
+        playerID: stranger.id,
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
+      try {
+        (game as any)._validateMove(unknownMove);
+        fail('expected error');
+      } catch (err) {
+        expect((err as Error).message).toBe(PLAYER_NOT_IN_GAME_MESSAGE);
+      }
+
+      // out of turn (O tries first)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const oFirst: GameMove<any> = {
+        playerID: playerO.id,
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
+      try {
+        (game as any)._validateMove(oFirst);
+        fail('expected error');
+      } catch (err) {
+        expect((err as Error).message).toBe(MOVE_NOT_YOUR_TURN_MESSAGE);
+      }
+
+      // invalid board
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const badBoard: GameMove<any> = {
+        playerID: playerX.id,
+        gameID: game.id,
+        move: { board: 'Z', row: 0, col: 0 },
+      };
+      try {
+        (game as any)._validateMove(badBoard);
+        fail('expected error');
+      } catch (err) {
+        expect((err as Error).message).toBe(BOARD_POSITION_NOT_VALID_MESSAGE);
+      }
+
+      // invalid coords
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const badCoords: GameMove<any> = {
+        playerID: playerX.id,
+        gameID: game.id,
+        move: { board: 'A', row: -1, col: 3 },
+      };
+      try {
+        (game as any)._validateMove(badCoords);
+        fail('expected error');
+      } catch (err) {
+        expect((err as Error).message).toBe(BOARD_POSITION_NOT_VALID_MESSAGE);
+      }
+    });
+
+    it('throws when trying to play a square already owned by the same player on that board', () => {
+      game.join(playerX);
+      game.join(playerO);
+      makeMove(playerX, 'A', 1, 1); // claim
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const repeat: GameMove<any> = {
+        playerID: playerX.id,
+        gameID: game.id,
+        move: { board: 'A', row: 1, col: 1 },
+      };
+      // advance to X’s turn again
+      makeMove(playerO, 'B', 0, 0);
+
+      try {
+        (game as any)._validateMove(repeat);
+        fail('expected error');
+      } catch (err) {
+        expect((err as Error).message).toBe(INVALID_MOVE_MESSAGE);
+      }
+    });
+
+    it('throws when attempting to play on a closed sub-board', () => {
+      game.join(playerX);
+      game.join(playerO);
+      // close A with a quick X win
+      makeMove(playerX, 'A', 0, 0);
+      makeMove(playerO, 'B', 0, 0);
+      makeMove(playerX, 'A', 0, 1);
+      makeMove(playerO, 'B', 1, 1);
+      makeMove(playerX, 'A', 0, 2); // A becomes OVER
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const invalidOnClosed: GameMove<any> = {
+        playerID: playerO.id,
+        gameID: game.id,
+        move: { board: 'A', row: 1, col: 0 },
+      };
+      try {
+        (game as any)._validateMove(invalidOnClosed);
+        fail('expected error');
+      } catch (err) {
+        expect((err as Error).message).toBe(INVALID_MOVE_MESSAGE);
+      }
+    });
+  });
+
+  /* ===================== _checkForWins ===================== */
+
+  describe('_checkForWins', () => {
+    beforeEach(() => {
+      game.join(playerX);
+      game.join(playerO);
+    });
+
+    it('awards +1 to X when a subgame is OVER with winner = X and not yet scored', () => {
+      // make subgame B appear OVER with X as winner (simulate)
+      // @ts-expect-error private access
+      const subB = game._games.B;
+      const newStateB = {
+        ...subB.state,
+        status: 'OVER' as const,
+        winner: playerX.id,
+      };
+      // @ts-expect-error override protected
+      subB.state = newStateB;
+
+      // scores should be 0 before
+      expect(game.state.xScore).toBe(0);
+      expect(game.state.oScore).toBe(0);
+
+      // invoke
+
+      (game as any)._checkForWins();
+
+      expect(game.state.xScore).toBe(1);
+      expect(game.state.oScore).toBe(0);
+
+      // calling again should not double-count (scoredBoards guard)
+
+      (game as any)._checkForWins();
+      expect(game.state.xScore).toBe(1);
+    });
+
+    it('awards +1 to O when O is winner; ignores boards already scored', () => {
+      // @ts-expect-error private
+      const subA = game._games.A;
+      // @ts-expect-error override
+      subA.state = { ...subA.state, status: 'OVER', winner: playerO.id };
+
+      // first scoring
+
+      (game as any)._checkForWins();
+      expect(game.state.oScore).toBe(1);
+
+      // set a second time (should not increment again)
+      // @ts-expect-error override
+      subA.state = { ...subA.state, status: 'OVER', winner: playerO.id };
+
+      (game as any)._checkForWins();
+      expect(game.state.oScore).toBe(1);
+    });
+
+    it('does not change scores for OVER board with undefined winner (tie)', () => {
+      // @ts-expect-error private
+      const subC = game._games.C;
+      // @ts-expect-error override
+      subC.state = { ...subC.state, status: 'OVER', winner: undefined };
+
+      (game as any)._checkForWins();
+      expect(game.state.xScore).toBe(0);
+      expect(game.state.oScore).toBe(0);
+    });
+  });
+
+  /* ===================== _checkForGameEnding ===================== */
+
+  describe('_checkForGameEnding', () => {
+    beforeEach(() => {
+      game.join(playerX);
+      game.join(playerO);
+    });
+
+    it('ends the game (OVER) and picks winner by score when no moves remain', () => {
+      // give X one scored board (A)
+      makeMove(playerX, 'A', 0, 0);
+      makeMove(playerO, 'B', 0, 0);
+      makeMove(playerX, 'A', 0, 1);
+      makeMove(playerO, 'B', 1, 1);
+      makeMove(playerX, 'A', 0, 2); // xScore becomes 1
+
+      // now make B and C unplayable by setting them to OVER (ties)
+      // @ts-expect-error private
+      const subB = game._games.B;
+      // @ts-expect-error private
+      const subC = game._games.C;
+
+      // @ts-expect-error override
+      subB.state = { ...subB.state, status: 'OVER', winner: undefined };
+      // @ts-expect-error override
+      subC.state = { ...subC.state, status: 'OVER', winner: undefined };
+
+      // and A is already OVER from the win
+
+      // trigger game-end check
+
+      (game as any)._checkForGameEnding();
+
+      expect(game.state.status).toBe('OVER');
+      expect(game.state.winner).toBe(game.state.x); // X had higher score
+    });
+
+    it('ends in a draw (winner undefined) when scores are equal and no moves remain', () => {
+      // close all three boards as ties (no winners), no placements left
+
+      // @ts-expect-error private
+      const subA = game._games.A;
+      // @ts-expect-error private
+      const subB = game._games.B;
+      // @ts-expect-error private
+      const subC = game._games.C;
+
+      // mark all OVER with no winner
+      // @ts-expect-error override
+      subA.state = { ...subA.state, status: 'OVER', winner: undefined };
+      // @ts-expect-error override
+      subB.state = { ...subB.state, status: 'OVER', winner: undefined };
+      // @ts-expect-error override
+      subC.state = { ...subC.state, status: 'OVER', winner: undefined };
+
+      // scores stay equal at 0–0
+
+      // invoke
+
+      (game as any)._checkForGameEnding();
+
+      expect(game.state.status).toBe('OVER');
+      expect(game.state.winner).toBeUndefined();
+    });
+
+    it('does not end while at least one unclaimed cell exists on an open board', () => {
+      // ensure at least one open cell: put a single move on A so A is still open with empties
+      makeMove(playerX, 'A', 1, 1);
+
+      // mark B and C as OVER to isolate logic to A
+      // @ts-expect-error private
+      const subB = game._games.B;
+      // @ts-expect-error private
+      const subC = game._games.C;
+      // @ts-expect-error override
+      subB.state = { ...subB.state, status: 'OVER', winner: undefined };
+      // @ts-expect-error override
+      subC.state = { ...subC.state, status: 'OVER', winner: undefined };
+
+      // call ending check — should stay IN_PROGRESS because A still has empties
+
+      (game as any)._checkForGameEnding();
+      expect(game.state.status).toBe('IN_PROGRESS');
+    });
+
+    it('considers only privately claimed cells (collisions alone do not fill a board)', () => {
+      // Create a collision at A(0,0) without adding private claim for mover
+      makeMove(playerX, 'A', 0, 0); // claim by X
+      makeMove(playerO, 'A', 0, 0); // collision (public reveal only)
+
+      // Close B and C so only A remains; A still has many empty private cells
+      // @ts-expect-error private
+      const subB = game._games.B;
+      // @ts-expect-error private
+      const subC = game._games.C;
+      // @ts-expect-error override
+      subB.state = { ...subB.state, status: 'OVER', winner: undefined };
+      // @ts-expect-error override
+      subC.state = { ...subC.state, status: 'OVER', winner: undefined };
+
+      // Invoke check — should remain IN_PROGRESS (collision does not mark A as full)
+
+      (game as any)._checkForGameEnding();
+      expect(game.state.status).toBe('IN_PROGRESS');
     });
   });
 });
