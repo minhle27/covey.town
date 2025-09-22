@@ -501,11 +501,11 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         expect(game.state.publiclyVisible.C[0][1]).toBe(false);
       });
 
-      // it('error does not advance turn (turn integrity)', () => {
-      //   // @ts-expect-error force invalid
-      //   expect(() => makeMove(playerX, 'A', 0, 99)).toThrow();
-      //   expect(() => makeMove(playerX, 'A', 1, 1)).not.toThrow(); // still X turn
-      // });
+      it('error does not advance turn (turn integrity)', () => {
+        // @ts-expect-error force invalid
+        expect(() => makeMove(playerX, 'A', 0, 99)).toThrow();
+        expect(() => makeMove(playerX, 'A', 1, 1)).not.toThrow(); // still X turn
+      });
 
       it('game stays in progress when legal placements remain, even with many revealed cells', () => {
         makeMove(playerX, 'A', 0, 0);
