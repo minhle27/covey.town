@@ -613,21 +613,21 @@ describe('QuantumTicTacToeGame (private method tests)', () => {
   /* ===================== _validateMove ===================== */
 
   describe('_validateMove', () => {
-    // it('throws when game not in progress', () => {
-    //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    //   const mv: GameMove<any> = {
-    //     playerID: 'nobody',
-    //     gameID: game.id,
-    //     move: { board: 'A', row: 0, col: 0 },
-    //   };
-    //   try {
-    //     (game as any)._validateMove(mv);
-    //     fail('expected error');
-    //   } catch (err) {
-    //     expect(err).toBeInstanceOf(InvalidParametersError);
-    //     expect((err as Error).message).toBe(GAME_NOT_IN_PROGRESS_MESSAGE);
-    //   }
-    // });
+    it('throws when game not in progress', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mv: GameMove<any> = {
+        playerID: 'nobody',
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
+      try {
+        (game as any)._validateMove(mv);
+        fail('expected error');
+      } catch (err) {
+        expect(err).toBeInstanceOf(InvalidParametersError);
+        expect((err as Error).message).toBe(GAME_NOT_IN_PROGRESS_MESSAGE);
+      }
+    });
 
     // it('throws for unknown player and out-of-turn, and invalid board/coords', () => {
     //   game.join(playerX);
@@ -892,25 +892,25 @@ describe('QuantumTicTacToeGame (private method tests)', () => {
       expect(game.state.status).toBe('IN_PROGRESS');
     });
 
-    // it('considers only privately claimed cells (collisions alone do not fill a board)', () => {
-    //   // Create a collision at A(0,0) without adding private claim for mover
-    //   makeMove(playerX, 'A', 0, 0); // claim by X
-    //   makeMove(playerO, 'A', 0, 0); // collision (public reveal only)
+    it('considers only privately claimed cells (collisions alone do not fill a board)', () => {
+      // Create a collision at A(0,0) without adding private claim for mover
+      makeMove(playerX, 'A', 0, 0); // claim by X
+      makeMove(playerO, 'A', 0, 0); // collision (public reveal only)
 
-    //   // Close B and C so only A remains; A still has many empty private cells
-    //   // @ts-expect-error private
-    //   const subB = game._games.B;
-    //   // @ts-expect-error private
-    //   const subC = game._games.C;
-    //   // @ts-expect-error override
-    //   subB.state = { ...subB.state, status: 'OVER', winner: undefined };
-    //   // @ts-expect-error override
-    //   subC.state = { ...subC.state, status: 'OVER', winner: undefined };
+      // Close B and C so only A remains; A still has many empty private cells
+      // @ts-expect-error private
+      const subB = game._games.B;
+      // @ts-expect-error private
+      const subC = game._games.C;
+      // @ts-expect-error override
+      subB.state = { ...subB.state, status: 'OVER', winner: undefined };
+      // @ts-expect-error override
+      subC.state = { ...subC.state, status: 'OVER', winner: undefined };
 
-    //   // Invoke check — should remain IN_PROGRESS (collision does not mark A as full)
+      // Invoke check — should remain IN_PROGRESS (collision does not mark A as full)
 
-    //   (game as any)._checkForGameEnding();
-    //   expect(game.state.status).toBe('IN_PROGRESS');
-    // });
+      (game as any)._checkForGameEnding();
+      expect(game.state.status).toBe('IN_PROGRESS');
+    });
   });
 });
