@@ -121,14 +121,22 @@ describe('QuantumTicTacToeGame', () => {
       g2.join(p1);
       // not joined by O yet
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const move: GameMove<any> = { playerID: p1.id, gameID: g2.id, move: { board: 'A', row: 0, col: 0 } };
+      const move: GameMove<any> = {
+        playerID: p1.id,
+        gameID: g2.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
       expect(() => g2.applyMove(move)).toThrow(InvalidParametersError);
       expect(() => g2.applyMove(move)).toThrow(GAME_NOT_IN_PROGRESS_MESSAGE);
     });
 
     it('should reject moves by players not in the game', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const move: GameMove<any> = { playerID: rando.id, gameID: game.id, move: { board: 'A', row: 0, col: 0 } };
+      const move: GameMove<any> = {
+        playerID: rando.id,
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
       expect(() => game.applyMove(move)).toThrow(InvalidParametersError);
       expect(() => game.applyMove(move)).toThrow(PLAYER_NOT_IN_GAME_MESSAGE);
     });
@@ -136,11 +144,19 @@ describe('QuantumTicTacToeGame', () => {
     it('should validate board coordinates', () => {
       // row out of bounds
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const badMove1: GameMove<any> = { playerID: player1.id, gameID: game.id, move: { board: 'A', row: -1, col: 0 } };
+      const badMove1: GameMove<any> = {
+        playerID: player1.id,
+        gameID: game.id,
+        move: { board: 'A', row: -1, col: 0 },
+      };
       expect(() => game.applyMove(badMove1)).toThrow(BOARD_POSITION_NOT_VALID_MESSAGE);
       // col out of bounds
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const badMove2: GameMove<any> = { playerID: player1.id, gameID: game.id, move: { board: 'A', row: 0, col: 3 } };
+      const badMove2: GameMove<any> = {
+        playerID: player1.id,
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 3 },
+      };
       expect(() => game.applyMove(badMove2)).toThrow(BOARD_POSITION_NOT_VALID_MESSAGE);
     });
 
@@ -157,7 +173,11 @@ describe('QuantumTicTacToeGame', () => {
       makeMove(player2, 'B', 1, 1); // O
       // X tries to play the same cell again on A: invalid (already mine)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const move: GameMove<any> = { playerID: player1.id, gameID: game.id, move: { board: 'A', row: 0, col: 0 } };
+      const move: GameMove<any> = {
+        playerID: player1.id,
+        gameID: game.id,
+        move: { board: 'A', row: 0, col: 0 },
+      };
       expect(() => game.applyMove(move)).toThrow(INVALID_MOVE_MESSAGE);
     });
 
@@ -292,31 +312,39 @@ describe('QuantumTicTacToeGame', () => {
         g.join(pX);
         g.join(pO);
 
-        const mv = (p: Player, b: 'A'|'B'|'C', r: 0|1|2, c: 0|1|2) => {
+        const mv = (p: Player, b: 'A' | 'B' | 'C', r: 0 | 1 | 2, c: 0 | 1 | 2) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const m: GameMove<any> = { playerID: p.id, gameID: g.id, move: { board: b, row: r, col: c } };
+          const m: GameMove<any> = {
+            playerID: p.id,
+            gameID: g.id,
+            move: { board: b, row: r, col: c },
+          };
           g.applyMove(m);
         };
 
         // X wins A (diag)
-        mv(pX,'A',0,0); mv(pO,'B',0,0);
-        mv(pX,'A',1,1); mv(pO,'B',1,1);
-        mv(pX,'A',2,2);
+        mv(pX, 'A', 0, 0);
+        mv(pO, 'B', 0, 0);
+        mv(pX, 'A', 1, 1);
+        mv(pO, 'B', 1, 1);
+        mv(pX, 'A', 2, 2);
 
         // O wins B (row)
-        mv(pO,'B',0,1); mv(pX,'C',0,0);
-        mv(pO,'B',0,2); mv(pX,'C',1,1);
-        mv(pO,'B',1,0); // O wins B
+        mv(pO, 'B', 0, 1);
+        mv(pX, 'C', 0, 0);
+        mv(pO, 'B', 0, 2);
+        mv(pX, 'C', 1, 1);
+        mv(pO, 'B', 1, 0); // O wins B
 
         // Fill C to a tie (no 3-in-a-row) with remaining alternating moves
         // Current turn is X
-        mv(pX,'C',0,2);
-        mv(pO,'C',0,1);
-        mv(pX,'C',1,0);
-        mv(pO,'C',2,0);
-        mv(pX,'C',1,2);
-        mv(pO,'C',2,2);
-        mv(pX,'C',2,1);
+        mv(pX, 'C', 0, 2);
+        mv(pO, 'C', 0, 1);
+        mv(pX, 'C', 1, 0);
+        mv(pO, 'C', 2, 0);
+        mv(pX, 'C', 1, 2);
+        mv(pO, 'C', 2, 2);
+        mv(pX, 'C', 2, 1);
         // Last open cell on C is (1,2)? already used; choose (1,2) used; remaining should be (1,2) and (2,2) used.
         // Remaining cell is (1,2) used; actually the final remaining cell is (1,2) and (2,2) used; re-check: open (1,2) not open.
         // Let's pick (1,2) logic aside, find an actually open one: we haven't used C(1,2) (we did), C(2,2) (we did), C(2,1) (we did).
@@ -327,85 +355,198 @@ describe('QuantumTicTacToeGame', () => {
         const g2 = new QuantumTicTacToeGame();
         const px = createPlayerForTesting();
         const po = createPlayerForTesting();
-        g2.join(px); g2.join(po);
+        g2.join(px);
+        g2.join(po);
 
-        const m2 = (p: Player, r: 0|1|2, c: 0|1|2) => {
+        const m2 = (p: Player, r: 0 | 1 | 2, c: 0 | 1 | 2) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          g2.applyMove({ playerID: p.id, gameID: g2.id, move: { board: 'C', row: r, col: c } as any });
+          g2.applyMove({
+            playerID: p.id,
+            gameID: g2.id,
+            move: { board: 'C', row: r, col: c } as any,
+          });
         };
 
         // Fill C in g2 to tie, and also separately score one win for each on A/B to tie points:
         // Score X on A:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: px.id, gameID: g2.id, move: { board: 'A', row: 0, col: 0 } as any });
+        g2.applyMove({
+          playerID: px.id,
+          gameID: g2.id,
+          move: { board: 'A', row: 0, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: po.id, gameID: g2.id, move: { board: 'B', row: 0, col: 0 } as any });
+        g2.applyMove({
+          playerID: po.id,
+          gameID: g2.id,
+          move: { board: 'B', row: 0, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: px.id, gameID: g2.id, move: { board: 'A', row: 0, col: 1 } as any });
+        g2.applyMove({
+          playerID: px.id,
+          gameID: g2.id,
+          move: { board: 'A', row: 0, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: po.id, gameID: g2.id, move: { board: 'B', row: 0, col: 1 } as any });
+        g2.applyMove({
+          playerID: po.id,
+          gameID: g2.id,
+          move: { board: 'B', row: 0, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: px.id, gameID: g2.id, move: { board: 'A', row: 0, col: 2 } as any });
+        g2.applyMove({
+          playerID: px.id,
+          gameID: g2.id,
+          move: { board: 'A', row: 0, col: 2 } as any,
+        });
         expect(g2.state.xScore).toBe(1);
 
         // Score O on B:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: po.id, gameID: g2.id, move: { board: 'B', row: 1, col: 0 } as any });
+        g2.applyMove({
+          playerID: po.id,
+          gameID: g2.id,
+          move: { board: 'B', row: 1, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: px.id, gameID: g2.id, move: { board: 'C', row: 0, col: 0 } as any }); // start filling C
+        g2.applyMove({
+          playerID: px.id,
+          gameID: g2.id,
+          move: { board: 'C', row: 0, col: 0 } as any,
+        }); // start filling C
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: po.id, gameID: g2.id, move: { board: 'B', row: 1, col: 1 } as any });
+        g2.applyMove({
+          playerID: po.id,
+          gameID: g2.id,
+          move: { board: 'B', row: 1, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: px.id, gameID: g2.id, move: { board: 'C', row: 0, col: 1 } as any });
+        g2.applyMove({
+          playerID: px.id,
+          gameID: g2.id,
+          move: { board: 'C', row: 0, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g2.applyMove({ playerID: po.id, gameID: g2.id, move: { board: 'B', row: 1, col: 2 } as any });
+        g2.applyMove({
+          playerID: po.id,
+          gameID: g2.id,
+          move: { board: 'B', row: 1, col: 2 } as any,
+        });
         expect(g2.state.oScore).toBe(1);
 
         // Fill C to tie (no 3-in-a-row):
-        m2(px,0,2); m2(po,1,1); m2(px,1,0); m2(po,1,2); m2(px,2,0); m2(po,2,2); m2(px,2,1); m2(po,1,2); // last repeat okay—turns enforced; adjust final legal:
+        m2(px, 0, 2);
+        m2(po, 1, 1);
+        m2(px, 1, 0);
+        m2(po, 1, 2);
+        m2(px, 2, 0);
+        m2(po, 2, 2);
+        m2(px, 2, 1);
+        m2(po, 1, 2); // last repeat okay—turns enforced; adjust final legal:
         // Finish with a legal final empty cell: (1,2) may be filled already; pick (2,1) may be filled; select (1,2) again will collide (legal under current rules) but doesn't fill.
         // Safer: create explicit fill pattern:
         const g3 = new QuantumTicTacToeGame();
         const pa = createPlayerForTesting();
         const pb = createPlayerForTesting();
-        g3.join(pa); g3.join(pb);
+        g3.join(pa);
+        g3.join(pb);
         // Score tie in points: X wins A, O wins B
         // X wins A:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'A', row: 0, col: 0 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'A', row: 0, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'B', row: 0, col: 0 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'B', row: 0, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'A', row: 1, col: 1 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'A', row: 1, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'B', row: 0, col: 1 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'B', row: 0, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'A', row: 2, col: 2 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'A', row: 2, col: 2 } as any,
+        });
         // O wins B:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'B', row: 0, col: 2 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'B', row: 0, col: 2 } as any,
+        });
         // Now fill C to a full board without a win:
         // Turns: X to move
         // Pattern that ties:
         // X: C(0,0), O: C(1,1), X: C(2,2), O: C(0,1), X: C(0,2), O: C(1,0), X: C(2,0), O: C(2,1), X: C(1,2)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'C', row: 0, col: 0 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 0, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'C', row: 1, col: 1 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 1, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'C', row: 2, col: 2 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 2, col: 2 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'C', row: 0, col: 1 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 0, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'C', row: 0, col: 2 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 0, col: 2 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'C', row: 1, col: 0 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 1, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'C', row: 2, col: 0 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 2, col: 0 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pb.id, gameID: g3.id, move: { board: 'C', row: 2, col: 1 } as any });
+        g3.applyMove({
+          playerID: pb.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 2, col: 1 } as any,
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        g3.applyMove({ playerID: pa.id, gameID: g3.id, move: { board: 'C', row: 1, col: 2 } as any });
+        g3.applyMove({
+          playerID: pa.id,
+          gameID: g3.id,
+          move: { board: 'C', row: 1, col: 2 } as any,
+        });
 
         // All three boards are OVER: A (X won), B (O won), C (tie). Scores tied.
         expect(g3.state.status).toBe('OVER');
