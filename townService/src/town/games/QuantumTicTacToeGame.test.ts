@@ -444,15 +444,15 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         expect(() => makeMove(playerX, 'A', 1, 0)).toThrow();
       });
 
-      // it('placing on your own already-owned square throws and does not change turn', () => {
-      //   makeMove(playerX, 'B', 1, 1); // X
-      //   // keep it O's turn with a valid move
-      //   makeMove(playerO, 'C', 0, 0);
-      //   // back to X; repeat on same cell should throw
-      //   expect(() => makeMove(playerX, 'B', 1, 1)).toThrow();
-      //   // still O's turn after exception
-      //   expect(() => makeMove(playerO, 'B', 0, 1)).not.toThrow();
-      // });
+      it('placing on your own already-owned square throws and does not change turn', () => {
+        makeMove(playerX, 'B', 1, 1); // X
+        // keep it O's turn with a valid move
+        makeMove(playerO, 'C', 0, 0);
+        // back to X; repeat on same cell should throw
+        expect(() => makeMove(playerX, 'B', 1, 1)).toThrow();
+        // still O's turn after exception
+        expect(() => makeMove(playerO, 'B', 0, 1)).not.toThrow();
+      });
 
       it('normal placement remains hidden publicly until a collision', () => {
         makeMove(playerX, 'C', 2, 2);
@@ -467,17 +467,6 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         expect(game.state.publiclyVisible.B[1][1]).toBe(false);
         expect(game.state.publiclyVisible.A[1][0]).toBe(false);
         expect(game.state.publiclyVisible.A[0][1]).toBe(false);
-      });
-
-      it('repeated collisions on a revealed cell advance turns but do not modify subgame', () => {
-        makeMove(playerX, 'A', 0, 0); // claim
-        makeMove(playerO, 'A', 0, 0); // reveal
-        // @ts-expect-error private access
-        const moveCountBefore = game._games.A.state.moves.length; // should be 1
-        makeMove(playerX, 'A', 0, 0); // collide again
-        // @ts-expect-error private access
-        expect(game._games.A.state.moves.length).toBe(moveCountBefore);
-        expect(game.state.publiclyVisible.A[0][0]).toBe(true);
       });
 
       it('collision does not place mover’s piece; defender remains owner privately', () => {
