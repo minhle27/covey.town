@@ -403,38 +403,38 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
       //   expect(subMoves[0]).toMatchObject({ row: 0, col: 2, gamePiece: 'X' });
       // });
 
-      // it('multiple lines created by one move score exactly +1 and lock the board', () => {
-      //   // X corners to enable double-diagonal with center
-      //   makeMove(playerX, 'C', 0, 0);
-      //   makeMove(playerO, 'A', 0, 0);
-      //   makeMove(playerX, 'C', 2, 2);
-      //   makeMove(playerO, 'A', 1, 0);
-      //   makeMove(playerX, 'C', 0, 2);
-      //   makeMove(playerO, 'A', 2, 0);
-      //   makeMove(playerX, 'C', 1, 1); // completes both diagonals
+      it('multiple lines created by one move score exactly +1 and lock the board', () => {
+        // X corners to enable double-diagonal with center
+        makeMove(playerX, 'C', 0, 0);
+        makeMove(playerO, 'A', 0, 0);
+        makeMove(playerX, 'C', 2, 2);
+        makeMove(playerO, 'A', 1, 0);
+        makeMove(playerX, 'C', 0, 2);
+        makeMove(playerO, 'A', 2, 0);
+        makeMove(playerX, 'C', 1, 1); // completes both diagonals
 
-      //   expect(game.state.xScore).toBe(1);
-      //   expect(() => makeMove(playerO, 'C', 2, 0)).toThrow(); // locked/closed
-      // });
+        expect(game.state.xScore).toBe(1);
+        expect(() => makeMove(playerO, 'C', 2, 0)).toThrow(); // locked/closed
+      });
 
-      // it('same coordinates on different boards are independent and legal', () => {
-      //   makeMove(playerX, 'A', 2, 1);
-      //   makeMove(playerO, 'B', 0, 0);
-      //   makeMove(playerX, 'B', 2, 1);
-      //   makeMove(playerO, 'C', 0, 0);
-      //   makeMove(playerX, 'C', 2, 1);
-      //   expect(game.state.publiclyVisible.A[2][1]).toBe(false);
-      //   expect(game.state.publiclyVisible.B[2][1]).toBe(false);
-      //   expect(game.state.publiclyVisible.C[2][1]).toBe(false);
-      // });
+      it('same coordinates on different boards are independent and legal', () => {
+        makeMove(playerX, 'A', 2, 1);
+        makeMove(playerO, 'B', 0, 0);
+        makeMove(playerX, 'B', 2, 1);
+        makeMove(playerO, 'C', 0, 0);
+        makeMove(playerX, 'C', 2, 1);
+        expect(game.state.publiclyVisible.A[2][1]).toBe(false);
+        expect(game.state.publiclyVisible.B[2][1]).toBe(false);
+        expect(game.state.publiclyVisible.C[2][1]).toBe(false);
+      });
 
-      // it('public grid objects are independent per board (no shared references)', () => {
-      //   makeMove(playerX, 'A', 0, 1);
-      //   makeMove(playerO, 'A', 0, 1); // reveal on A
-      //   expect(game.state.publiclyVisible.A[0][1]).toBe(true);
-      //   expect(game.state.publiclyVisible.B[0][1]).toBe(false);
-      //   expect(game.state.publiclyVisible.C[0][1]).toBe(false);
-      // });
+      it('public grid objects are independent per board (no shared references)', () => {
+        makeMove(playerX, 'A', 0, 1);
+        makeMove(playerO, 'A', 0, 1); // reveal on A
+        expect(game.state.publiclyVisible.A[0][1]).toBe(true);
+        expect(game.state.publiclyVisible.B[0][1]).toBe(false);
+        expect(game.state.publiclyVisible.C[0][1]).toBe(false);
+      });
 
       // it('error does not advance turn (turn integrity)', () => {
       //   // @ts-expect-error force invalid
