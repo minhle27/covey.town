@@ -238,13 +238,19 @@ export default class QuantumTicTacToeGame extends Game<
     );
 
     if (opponentAlreadyClaimed) {
-      // COLLISION: Player loses the turn; reveal opponent's symbol publicly on the SAME board cell.
-      this._revealPublic(targetBoardKey, move.move.row, move.move.col);
+      const newPubliclyVisible = this._getUpdatedPubliclyVisible(
+        targetBoardKey,
+        move.move.row,
+        move.move.col,
+      );
+      // // COLLISION: Player loses the turn; reveal opponent's symbol publicly on the SAME board cell.
+      // this._revealPublic(targetBoardKey, move.move.row, move.move.col);
 
       // Record the attempted move (to alternate turns) but DO NOT modify the subgame.
       this.state = {
         ...this.state,
-        moves: [...this.state.moves, move.move],
+        moves: [...this.state.moves, move.move], // Advances the turn
+        publiclyVisible: newPubliclyVisible, // Reveals the square
       };
 
       this._checkForGameEnding();
@@ -284,6 +290,17 @@ export default class QuantumTicTacToeGame extends Game<
         [boardKey]: grid,
       },
     };
+  }
+
+  /**
+   * Creates a new publiclyVisible object with a specific cell revealed.
+   * @returns A new publiclyVisible object for the new state.
+   */
+  private _getUpdatedPubliclyVisible(boardKey: 'A' | 'B' | 'C', row: number, col: number) {
+    // Deep copy to avoid mutation
+    const newPubliclyVisible = JSON.parse(JSON.stringify(this.state.publiclyVisible));
+    newPubliclyVisible[boardKey][row][col] = true;
+    return newPubliclyVisible;
   }
 
   /**
