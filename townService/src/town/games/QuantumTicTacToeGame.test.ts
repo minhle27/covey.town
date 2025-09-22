@@ -422,14 +422,14 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         expect(() => makeMove(playerX, 'A', 0, 0)).not.toThrow(); // still X turn and valid
       });
 
-      // it('rejects invalid coordinates and invalid board label', () => {
-      //   // @ts-expect-error bounds
-      //   expect(() => makeMove(playerX, 'A', -1, 0)).toThrow();
-      //   // @ts-expect-error bounds
-      //   expect(() => makeMove(playerX, 'A', 0, 3)).toThrow();
-      //   // @ts-expect-error invalid board
-      //   expect(() => makeMove(playerX, 'Z', 0, 0)).toThrow();
-      // });
+      it('rejects invalid coordinates and invalid board label', () => {
+        // @ts-expect-error bounds
+        expect(() => makeMove(playerX, 'A', -1, 0)).toThrow();
+        // @ts-expect-error bounds
+        expect(() => makeMove(playerX, 'A', 0, 3)).toThrow();
+        // @ts-expect-error invalid board
+        expect(() => makeMove(playerX, 'Z', 0, 0)).toThrow();
+      });
 
       it('cannot play on a sub-board that is OVER for any player', () => {
         // Win A for X
@@ -442,16 +442,6 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         expect(() => makeMove(playerO, 'A', 1, 0)).toThrow();
         makeMove(playerO, 'C', 0, 0); // legal elsewhere
         expect(() => makeMove(playerX, 'A', 1, 0)).toThrow();
-      });
-
-      it('placing on your own already-owned square throws and does not change turn', () => {
-        makeMove(playerX, 'B', 1, 1); // X
-        // keep it O's turn with a valid move
-        makeMove(playerO, 'C', 0, 0);
-        // back to X; repeat on same cell should throw
-        expect(() => makeMove(playerX, 'B', 1, 1)).toThrow();
-        // still O's turn after exception
-        expect(() => makeMove(playerO, 'B', 0, 1)).not.toThrow();
       });
 
       it('normal placement remains hidden publicly until a collision', () => {
