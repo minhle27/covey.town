@@ -624,34 +624,19 @@ describe('QuantumTicTacToeGame (private method tests)', () => {
       game.join(playerX);
       game.join(playerO);
 
-      // unknown player
-      const stranger = createPlayerForTesting();
+      // out of turn (O tries first)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const unknownMove: GameMove<any> = {
-        playerID: stranger.id,
+      const oFirst: GameMove<any> = {
+        playerID: playerO.id,
         gameID: game.id,
         move: { board: 'A', row: 0, col: 0 },
       };
       try {
-        (game as any)._validateMove(unknownMove);
+        (game as any)._validateMove(oFirst);
         fail('expected error');
       } catch (err) {
-        expect((err as Error).message).toBe(PLAYER_NOT_IN_GAME_MESSAGE);
+        expect((err as Error).message).toBe(MOVE_NOT_YOUR_TURN_MESSAGE);
       }
-
-      // out of turn (O tries first)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // const oFirst: GameMove<any> = {
-      //   playerID: playerO.id,
-      //   gameID: game.id,
-      //   move: { board: 'A', row: 0, col: 0 },
-      // };
-      // try {
-      //   (game as any)._validateMove(oFirst);
-      //   fail('expected error');
-      // } catch (err) {
-      //   expect((err as Error).message).toBe(MOVE_NOT_YOUR_TURN_MESSAGE);
-      // }
 
       // invalid board
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-ts-comment
