@@ -394,14 +394,14 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
       //   expect(game.state.publiclyVisible.A[0][0]).toBe(true);
       // });
 
-      // it('collision does not place mover’s piece; defender remains owner privately', () => {
-      //   makeMove(playerX, 'B', 0, 2);
-      //   makeMove(playerO, 'B', 0, 2); // collide
-      //   // @ts-expect-error private access
-      //   const subMoves = game._games.B.state.moves;
-      //   expect(subMoves.length).toBe(1);
-      //   expect(subMoves[0]).toMatchObject({ row: 0, col: 2, gamePiece: 'X' });
-      // });
+      it('collision does not place mover’s piece; defender remains owner privately', () => {
+        makeMove(playerX, 'B', 0, 2);
+        makeMove(playerO, 'B', 0, 2); // collide
+        // @ts-expect-error private access
+        const subMoves = game._games.B.state.moves;
+        expect(subMoves.length).toBe(1);
+        expect(subMoves[0]).toMatchObject({ row: 0, col: 2, gamePiece: 'X' });
+      });
 
       it('multiple lines created by one move score exactly +1 and lock the board', () => {
         // X corners to enable double-diagonal with center
@@ -436,11 +436,11 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         expect(game.state.publiclyVisible.C[0][1]).toBe(false);
       });
 
-      // it('error does not advance turn (turn integrity)', () => {
-      //   // @ts-expect-error force invalid
-      //   expect(() => makeMove(playerX, 'A', 0, 99)).toThrow();
-      //   expect(() => makeMove(playerX, 'A', 1, 1)).not.toThrow(); // still X turn
-      // });
+      it('error does not advance turn (turn integrity)', () => {
+        // @ts-expect-error force invalid
+        expect(() => makeMove(playerX, 'A', 0, 99)).toThrow();
+        expect(() => makeMove(playerX, 'A', 1, 1)).not.toThrow(); // still X turn
+      });
 
       it('game stays in progress when legal placements remain, even with many revealed cells', () => {
         makeMove(playerX, 'A', 0, 0);
@@ -484,14 +484,14 @@ describe('QuantumTicTacToeGame (extended 2)', () => {
         }
       });
 
-      // it('moves log records collision attempts with board/coords; subgame not mutated', () => {
-      //   makeMove(playerX, 'B', 2, 0);     // claim
-      //   makeMove(playerO, 'B', 2, 0);     // collide
-      //   const lastMove = game.state.moves[game.state.moves.length - 1];
-      //   expect(lastMove).toEqual({ board: 'B', row: 2, col: 0 });
-      //   // @ts-expect-error private access
-      //   expect(game._games.B.state.moves.length).toBe(1);
-      // });
+      it('moves log records collision attempts with board/coords; subgame not mutated', () => {
+        makeMove(playerX, 'B', 2, 0); // claim
+        makeMove(playerO, 'B', 2, 0); // collide
+        const lastMove = game.state.moves[game.state.moves.length - 1];
+        expect(lastMove).toEqual({ board: 'B', row: 2, col: 0 });
+        // @ts-expect-error private access
+        expect(game._games.B.state.moves.length).toBe(1);
+      });
 
       it('revealed cells remain true after unrelated future moves (sticky reveal)', () => {
         makeMove(playerX, 'C', 1, 2);
