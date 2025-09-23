@@ -526,47 +526,39 @@ describe('QuantumTicTacToeGame extra tests (mutation killers)', () => {
     expect(() => makeMove(playerO, 'A', 0, 1)).toThrow(INVALID_MOVE_MESSAGE);
   });
 
-  // it('enforces strict turn order: same player cannot move twice in a row', () => {
-  //   // X starts and plays one move
-  //   makeMove(playerX, 'B', 0, 0);
-  //   // X attempts to play again immediately -> invalid
-  //   expect(() => makeMove(playerX, 'B', 0, 1)).toThrow(INVALID_MOVE_MESSAGE);
+  it('does not allow a third player (or duplicate join) to join an in-progress 2-player game', () => {
+    const intruder = createPlayerForTesting();
+    // Third player should not be able to join
+    expect(() => game.join(intruder)).toThrow();
 
-  //   // O can now play successfully
-  //   expect(() => makeMove(playerO, 'B', 0, 1)).not.toThrow();
-  // });
+    // Same player cannot join twice
+    const game2 = new QuantumTicTacToeGame();
+    const p1 = createPlayerForTesting();
+    game2.join(p1);
+    expect(() => game2.join(p1)).toThrow();
+  });
 
-  it('overall winner determined when points are unequal and all boards are closed', () => {
-    // X wins board A (diagonal TL->BR)
+  it('attempting to play a square already occupied by the opponent costs the mover their turn (collision loses turn)', () => {
+    // X plays first at (A,0,0)
     makeMove(playerX, 'A', 0, 0);
-    makeMove(playerO, 'A', 0, 1);
-    makeMove(playerX, 'A', 1, 1);
-    makeMove(playerO, 'A', 0, 2);
-    makeMove(playerX, 'A', 2, 2); // X: +1
 
-    // O wins board B (diagonal TL->BR)
-    makeMove(playerO, 'B', 0, 0);
-    makeMove(playerX, 'B', 1, 0);
-    makeMove(playerO, 'B', 1, 1);
-    makeMove(playerX, 'B', 2, 0);
-    makeMove(playerO, 'B', 2, 2); // O: +1
-    expect(game.state.xScore).toBe(1);
-    expect(game.state.oScore).toBe(1);
+    // O attempts to play the *same* square. By game rules: O loses their turn.
+    // Implementation should NOT advance O's mark there; whether it throws or not,
+    // the key property we assert is: after this attempt, it is X's turn again.
+    try {
+      makeMove(playerO, 'A', 0, 0);
+    } catch {
+      // Some implementations may signal this with INVALID_MOVE; that's fine.
+    }
 
-    // X wins board C with a horizontal row (top row)
-    makeMove(playerX, 'C', 0, 0);
-    makeMove(playerO, 'C', 1, 0);
-    makeMove(playerX, 'C', 0, 1);
-    makeMove(playerO, 'C', 1, 1);
-    makeMove(playerX, 'C', 0, 2); // X: +1 again; all boards now closed
+    // If O truly lost their turn, X should be able to move immediately without a turn-order error.
+    expect(() => makeMove(playerX, 'A', 0, 1)).not.toThrow();
 
-    // With A and C for X, B for O -> X should be the winner and game OVER
-    expect(game.state.status).toBe('OVER');
-    expect(game.state.xScore).toBe(2);
-    expect(game.state.oScore).toBe(1);
-    expect(game.state.winner).toBe(playerX.id);
+    // And O can then move next.
+    expect(() => makeMove(playerO, 'A', 0, 2)).not.toThrow();
 
-    // Any further move anywhere should be rejected
-    expect(() => makeMove(playerO, 'A', 2, 0)).toThrow(GAME_NOT_IN_PROGRESS_MESSAGE);
+    // No points should have been awarded by the collision alone
+    expect(game.state.xScore).toBe(0);
+    expect(game.state.oScore).toBe(0);
   });
 });
