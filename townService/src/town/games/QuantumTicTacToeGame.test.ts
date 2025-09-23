@@ -504,4 +504,69 @@ describe('QuantumTicTacToeGame extra tests (mutation killers)', () => {
     // Any further move should be rejected
     expect(() => makeMove(playerX, 'A', 2, 0)).toThrow(GAME_NOT_IN_PROGRESS_MESSAGE);
   });
+
+  it('completing two lines at once (center) awards exactly +1 and closes the sub-board', () => {
+    // Build up so X has row 1: [ (1,0), (1,2) ] and col 1: [ (0,1), (2,1) ]
+    // The final center move (1,1) completes BOTH a row and a column simultaneously.
+    // Board A
+    makeMove(playerX, 'A', 1, 0); // X
+    makeMove(playerO, 'A', 0, 0); // O
+    makeMove(playerX, 'A', 1, 2); // X
+    makeMove(playerO, 'A', 0, 2); // O
+    makeMove(playerX, 'A', 0, 1); // X
+    makeMove(playerO, 'A', 2, 2); // O
+    makeMove(playerX, 'A', 2, 1); // X
+    makeMove(playerO, 'A', 2, 0); // O
+    // Now X drops center, completing both row and column
+    makeMove(playerX, 'A', 1, 1);
+
+    expect(game.state.xScore).toBe(1);
+    expect(game.state.oScore).toBe(0);
+    // Sub-board A should be closed; any further move on A rejected
+    expect(() => makeMove(playerO, 'A', 0, 1)).toThrow(INVALID_MOVE_MESSAGE);
+  });
+
+  // it('enforces strict turn order: same player cannot move twice in a row', () => {
+  //   // X starts and plays one move
+  //   makeMove(playerX, 'B', 0, 0);
+  //   // X attempts to play again immediately -> invalid
+  //   expect(() => makeMove(playerX, 'B', 0, 1)).toThrow(INVALID_MOVE_MESSAGE);
+
+  //   // O can now play successfully
+  //   expect(() => makeMove(playerO, 'B', 0, 1)).not.toThrow();
+  // });
+
+  it('overall winner determined when points are unequal and all boards are closed', () => {
+    // X wins board A (diagonal TL->BR)
+    makeMove(playerX, 'A', 0, 0);
+    makeMove(playerO, 'A', 0, 1);
+    makeMove(playerX, 'A', 1, 1);
+    makeMove(playerO, 'A', 0, 2);
+    makeMove(playerX, 'A', 2, 2); // X: +1
+
+    // O wins board B (diagonal TL->BR)
+    makeMove(playerO, 'B', 0, 0);
+    makeMove(playerX, 'B', 1, 0);
+    makeMove(playerO, 'B', 1, 1);
+    makeMove(playerX, 'B', 2, 0);
+    makeMove(playerO, 'B', 2, 2); // O: +1
+    expect(game.state.xScore).toBe(1);
+    expect(game.state.oScore).toBe(1);
+
+    // X wins board C with a horizontal row (top row)
+    makeMove(playerX, 'C', 0, 0);
+    makeMove(playerO, 'C', 1, 0);
+    makeMove(playerX, 'C', 0, 1);
+    makeMove(playerO, 'C', 1, 1);
+    makeMove(playerX, 'C', 0, 2); // X: +1 again; all boards now closed
+
+    // With A and C for X, B for O -> X should be the winner and game OVER
+    expect(game.state.status).toBe('OVER');
+    expect(game.state.xScore).toBe(2);
+    expect(game.state.oScore).toBe(1);
+    expect(game.state.winner).toBe(playerX.id);
+
+    // Any further move anywhere should be rejected
+    expect(() => makeMove(playerO, 'A', 2, 0)).toThrow(GAME_NOT_IN_PROGRESS_MESSAGE);
+  });
 });
